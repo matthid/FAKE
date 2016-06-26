@@ -62,6 +62,7 @@ let splitCommandLine s =
 [<EntryPoint>]
 let main (args:string[]) =
   let mutable exitCode = 0
+  let mutable printDetails = false
   try
     try
       //AutoCloseXmlWriter <- true
@@ -81,7 +82,7 @@ let main (args:string[]) =
 
           //Boot and version force us to ignore other args, so check for them and handle.
           //let isBoot, bootArgs = false, [] // no boot support (whatever that is)
-          let printDetails = opts.verbose
+          printDetails <- opts.verbose
 
           //match isBoot with
           ////Boot.
@@ -148,15 +149,19 @@ let main (args:string[]) =
         exitCode <- 1
 
     with
-    | exn -> 
-        if exn.InnerException <> null then
-            sprintf "Build failed.\nError:\n%s\nInnerException:\n%s" exn.Message exn.InnerException.Message
+    | exn ->
+        if printDetails then
+            sprintf "Build failed.\nError:\n%O" exn
             |> traceError
-            //printUsage()
         else
-            sprintf "Build failed.\nError:\n%s" exn.Message
-            |> traceError
-            //printUsage()
+            if exn.InnerException <> null then
+                sprintf "Build failed.\nError:\n%s\nInnerException:\n%s" exn.Message exn.InnerException.Message
+                |> traceError
+                //printUsage()
+            else
+                sprintf "Build failed.\nError:\n%s" exn.Message
+                |> traceError
+                //printUsage()
 
         //let isKnownException = exn :? FAKEException
         //if not isKnownException then
