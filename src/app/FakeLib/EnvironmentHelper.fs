@@ -1,10 +1,17 @@
-[<AutoOpen>]
 /// This module contains functions which allow to read and write environment variables and build parameters
+#if CORE_CLR
+module Fake.Environment
+type Environment = System.Environment
+#else
+[<AutoOpen>]
 module Fake.EnvironmentHelper
+#endif
 
 open System
 open System.IO
+#if !CORE_CLR
 open System.Configuration
+#endif
 open System.Diagnostics
 open System.Collections.Generic
 open System.Text
@@ -12,7 +19,9 @@ open System.Text.RegularExpressions
 open Microsoft.Win32
 
 /// Type alias for System.EnvironmentVariableTarget
+#if !CORE_CLR
 type EnvironTarget = EnvironmentVariableTarget
+#endif
 
 /// Retrieves the environment variable with the given name
 let environVar name = Environment.GetEnvironmentVariable name
@@ -31,26 +40,49 @@ let inline (</>) path1 path2 = combinePathsNoTrim path1 path2
 let inline normalizePath (path : string) = 
     path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar)
 
+let currentDirectory () =
+#if CORE_CLR
+    System.IO.Directory.GetCurrentDirectory()
+#else
+    Environment.CurrentDirectory
+#endif
+
 /// Retrieves all environment variables from the given target
+#if !CORE_CLR
 let environVars target = 
-    [ for e in Environment.GetEnvironmentVariables target -> 
+    let vars = Environment.GetEnvironmentVariables target
+#else
+let environVars () = 
+    let vars = Environment.GetEnvironmentVariables ()
+#endif
+    [ for e in vars -> 
           let e1 = e :?> Collections.DictionaryEntry
           e1.Key, e1.Value ]
 
 /// Sets the environment variable with the given name
 let setEnvironVar name value = Environment.SetEnvironmentVariable(name, value)
 
+#if !CORE_CLR
 /// Sets the environment variable with the given name for the current user.
 let setUserEnvironVar name value = Environment.SetEnvironmentVariable(name, value, EnvironmentVariableTarget.User)
 
 /// Sets the environment variable with the given name for the current machine.
 let setMachineEnvironVar name value = Environment.SetEnvironmentVariable(name, value, EnvironmentVariableTarget.Machine)
+#endif
 
 /// Sets the environment variable with the given name for the current process.
+#if !CORE_CLR
 let setProcessEnvironVar name value = Environment.SetEnvironmentVariable(name, value, EnvironmentVariableTarget.Process)
+#else
+let setProcessEnvironVar name value = Environment.SetEnvironmentVariable(name, value)
+#endif
 
 /// Clears the environment variable with the given name for the current process.
+#if !CORE_CLR
 let clearProcessEnvironVar name = Environment.SetEnvironmentVariable(name, null, EnvironmentVariableTarget.Process)
+#else
+let clearProcessEnvironVar name = Environment.SetEnvironmentVariable(name, null)
+#endif
 
 /// Sets the build parameter with the given name for the current process.
 let setBuildParam name value = setProcessEnvironVar name value
@@ -89,8 +121,10 @@ let splitEnvironVar name =
     if var = None then [ ]
     else var.Value.Split([| Path.PathSeparator |]) |> Array.toList
 
+#if !CORE_CLR
 /// Retrieves the application settings variable with the given name
 let appSetting (name : string) = ConfigurationManager.AppSettings.[name]
+#endif
 
 /// Returns if the build parameter with the given name was set
 let inline hasBuildParam name = environVar name <> null
@@ -103,8 +137,10 @@ let inline getBuildParamOrDefault name defaultParam =
 /// Returns the value of the build parameter with the given name if it was set and otherwise an empty string
 let inline getBuildParam name = getBuildParamOrDefault name String.Empty
 
+#if !CORE_CLR
 /// The path of the "Program Files" folder - might be x64 on x64 machine
 let ProgramFiles = Environment.GetFolderPath Environment.SpecialFolder.ProgramFiles
+#endif
 
 /// The path of Program Files (x86)
 /// It seems this covers all cases where PROCESSOR\_ARCHITECTURE may misreport and the case where the other variable 
@@ -122,6 +158,7 @@ let ProgramFilesX86 =
 /// The system root environment variable. Typically "C:\Windows"
 let SystemRoot = environVar "SystemRoot"
 
+#if !CORE_CLR
 /// Determines if the current system is an Unix system
 let isUnix = Environment.OSVersion.Platform = PlatformID.Unix
 
@@ -190,6 +227,7 @@ let getTargetPlatformDir platformVersion =
 
 /// The path to the personal documents
 let documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+#endif
 
 /// The directory separator string. On most systems / or \
 let directorySeparator = Path.DirectorySeparatorChar.ToString()
@@ -202,9 +240,14 @@ let convertWindowsToCurrentPath (windowsPath : string) =
 /// Contains the IO encoding which is given via build parameter "encoding" or the default encoding if no encoding was specified.
 let encoding = 
     match getBuildParamOrDefault "encoding" "default" with
+#if !CORE_CLR
     | "default" -> Text.Encoding.Default
+#else
+    | "default" -> Text.Encoding.UTF8
+#endif
     | enc -> Text.Encoding.GetEncoding(enc)
 
+#if !CORE_CLR
 /// Returns a sequence with all installed .NET framework versions
 let getInstalledDotNetFrameworks() = 
     let frameworks = new ResizeArray<_>()
@@ -262,3 +305,4 @@ let getMachineEnvironment() =
       AgentVersion = 
           sprintf "%A" ((System.Reflection.Assembly.GetAssembly(typedefof<MachineDetails>)).GetName().Version)
       DriveInfo = getDrivesInfo() }
+#endif

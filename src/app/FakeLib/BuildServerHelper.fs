@@ -1,6 +1,12 @@
-﻿[<AutoOpen>]
-/// Contains functions which allow build scripts to interact with a build server.
+﻿/// Contains functions which allow build scripts to interact with a build server.
+#if CORE_CLR
+module Fake.BuildServer
+open Fake.Environment
+open Fake.String
+#else
+[<AutoOpen>]
 module Fake.BuildServerHelper
+#endif
 
 /// The server type option.
 type BuildServer = 
