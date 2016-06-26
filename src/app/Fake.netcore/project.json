@@ -65,7 +65,7 @@
       ],
       "dependencies": {
         "Mono.Cecil": "0.9.6.0",
-        "FakeLib.netcore": "1.0.0-alpha3",
+        "FakeLib.netcore": "1.0.0-alpha4",
         "CommandLine.DotNetCore": "1.0.0",
         "System.Console": "4.0.0-rc2-24027",
         "System.IO.FileSystem": "4.0.1",
@@ -82,11 +82,12 @@
         "System.Runtime.Extensions": "4.1.0",
         "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-*",
         "FSharp.Compiler.Service.netcore": "1.0.0-alpha-00001",
+        "FSharp.Compiler.Service.ProjectCracker.netcore": "1.0.0-alpha-00001",
         "System.Security.Cryptography.Primitives": "4.0.0",
         "System.Security.Cryptography.Algorithms": "4.2.0",
         "Microsoft.NETCore.App": {
           "type": "platform",
-          "version": "1.0.0-rc2-*"
+          "version": "1.0.0-rc2-3002702"
         }
       }
     }
