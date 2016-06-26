@@ -547,6 +547,7 @@ let private runScriptUncached (useCache, scriptPath, fsiOptions) printDetails ca
     let options =
       { options with
           NoFramework = true
+          Debug = Some DebugMode.Portable
           References = (references |> List.map (sprintf @"C:\Users\dragon\.nuget\packages\%s")) @ options.References }
 #endif
     let getScriptAndHash fileName =
