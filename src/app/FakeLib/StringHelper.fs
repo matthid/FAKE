@@ -1,7 +1,13 @@
-﻿[<AutoOpen>]
+﻿/// Contains basic functions for string manipulation.
+#if CORE_CLR
+module Fake.String
+type String = System.String
+open Fake.Environment
+#else
+[<AutoOpen>]
 /// Contains basic functions for string manipulation.
 module Fake.StringHelper
-
+#endif
 open System
 open System.IO
 open System.Text
@@ -177,6 +183,7 @@ let liftString x =
     if isNullOrEmpty x then None
     else Some x
 
+#if !CORE_CLR
 /// Reads a file line by line
 let ReadFile(file : string) = 
     seq { 
@@ -353,3 +360,5 @@ let DecodeBase64Utf8String(text : string) =
     text
     |> Convert.FromBase64String
     |> Encoding.UTF8.GetString
+
+#endif

@@ -6,7 +6,11 @@ module internal Env =
   let inline isNull o = obj.ReferenceEquals(null, o)
   let isMono = try System.Type.GetType("Mono.Runtime") |> isNull |> not with _ -> false
   let (++) a b = System.IO.Path.Combine(a,b)
+#if NETSTANDARD1_5
+  let (=?) s1 s2 = System.String.Equals(s1, s2, System.StringComparison.OrdinalIgnoreCase)
+#else
   let (=?) s1 s2 = System.String.Equals(s1, s2, System.StringComparison.InvariantCultureIgnoreCase)
+#endif
   let (<>?) s1 s2 = not (s1 =? s2)
 
 #if NET40
@@ -20,11 +24,13 @@ open System.Diagnostics
 module Log =
   let source = new TraceSource("Yaaf.FSharp.Scriping")
 
+#if !NETSTANDARD1_5
   let LogConsole levels =
     let consoleListener = new ConsoleTraceListener();
     consoleListener.TraceOutputOptions <- TraceOptions.DateTime
     consoleListener.Filter <- new EventTypeFilter(levels)
     source.Listeners.Add consoleListener |> ignore
+#endif
 
   let traceEventf t f =
     Printf.kprintf (fun s -> source.TraceEvent(t, 0, s)) f
@@ -64,6 +70,9 @@ module internal CompilerServiceExtensions =
       let defaultFrameworkVersion = "4.5"
 #endif
 
+      let getLib dir nm =
+          dir ++ nm + ".dll"
+#if !NETSTANDARD1_5
       let referenceAssemblyDirectory frameworkVersion =
         let isWindows = System.Environment.OSVersion.Platform = System.PlatformID.Win32NT
         let baseDir =
@@ -79,8 +88,6 @@ module internal CompilerServiceExtensions =
         if Directory.Exists refDir then refDir
         else System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory()
 
-      let getLib dir nm =
-          dir ++ nm + ".dll"
       let referenceAssembly frameworkVersion = getLib (referenceAssemblyDirectory frameworkVersion)
       let fsCore frameworkVersion fsharpVersion =
         let isWindows = System.Environment.OSVersion.Platform = System.PlatformID.Win32NT
@@ -100,12 +107,16 @@ module internal CompilerServiceExtensions =
         let ass = typedefof<option<_>>.Assembly
         let name = ass.GetName()
         name.Version.ToString()
-
+#endif
       let fscoreResolveDirs libDirs =
-        [ yield System.AppDomain.CurrentDomain.BaseDirectory
+        [ 
+#if !NETSTANDARD1_5
+          yield System.AppDomain.CurrentDomain.BaseDirectory
           yield referenceAssemblyDirectory defaultFrameworkVersion
           yield System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory()
+#endif
           yield! libDirs
+#if !NETSTANDARD1_5
           yield Environment.CurrentDirectory
           // Prefer the currently loaded version
           yield fsCore "4.0" loadedFsCoreVersion
@@ -123,6 +134,7 @@ module internal CompilerServiceExtensions =
           if isMono then
             // See https://github.com/fsharp/FSharp.Compiler.Service/issues/317
             yield referenceAssemblyDirectory "4.0"
+#endif
         ]
 
       let tryCheckFsCore fscorePath =
@@ -150,14 +162,17 @@ module internal CompilerServiceExtensions =
         [ "FSharp.Core"
           "System.EnterpriseServices.Thunk" // See #4
           "System.EnterpriseServices.Wrapper" ] // See #4
+#if !NETSTANDARD1_5
       let getDefaultSystemReferences frameworkVersion =
         Directory.EnumerateFiles(referenceAssemblyDirectory frameworkVersion)
         |> Seq.filter (fun file -> Path.GetExtension file =? ".dll")
         |> Seq.map Path.GetFileNameWithoutExtension
         |> Seq.filter (fun f ->
             sysLibBlackList |> Seq.forall (fun backListed -> f <>? backListed))
-
+#endif
       let getCheckerArguments frameworkVersion defaultReferences (fsCoreLib: _ option) dllFiles libDirs otherFlags =
+          ignore frameworkVersion
+          ignore defaultReferences
           let base1 = Path.GetTempFileName()
           let dllName = Path.ChangeExtension(base1, ".dll")
           let xmlName = Path.ChangeExtension(base1, ".xml")
@@ -171,9 +186,11 @@ module internal CompilerServiceExtensions =
                //yield "--optimize-"
                yield "--nooptimizationdata"
                yield "--noframework"
+#if !NETSTANDARD1_5
                yield sprintf "-I:%s" (referenceAssemblyDirectory frameworkVersion)
                for ref in defaultReferences do
                  yield sprintf "-r:%s" (referenceAssembly frameworkVersion ref)
+#endif
                if fsCoreLib.IsSome then
                  yield sprintf "-r:%s" fsCoreLib.Value
                yield "--out:" + dllName
@@ -193,6 +210,7 @@ module internal CompilerServiceExtensions =
           projFileName, args
 
       let findAssemblyVersion (assembly:Assembly) =
+#if !NETSTANDARD1_5
           let customAttributes = assembly.GetCustomAttributesData()
           let targetFramework =
             customAttributes
@@ -216,6 +234,10 @@ module internal CompilerServiceExtensions =
               let version = versionString.Substring ("Version=v".Length)
               Some (framework, version)
           | None -> None
+#else
+          ignore assembly
+          None
+#endif
 
       let getProjectReferences frameworkVersion otherFlags libDirs dllFiles =
           let otherFlags = defaultArg otherFlags Seq.empty
@@ -237,12 +259,16 @@ module internal CompilerServiceExtensions =
             if not hasFsCoreLib then
               Some (findFSCore dllFiles libDirs)
             else None
-
+            
+#if !NETSTANDARD1_5
           let defaultReferences =
             getDefaultSystemReferences frameworkVersion
             |> Seq.filter (not << hasAssembly)
 
           let projFileName, args = getCheckerArguments frameworkVersion defaultReferences (fsCoreLib: _ option) dllFiles libDirs otherFlags
+#else
+          let projFileName, args = getCheckerArguments frameworkVersion ignore (fsCoreLib: _ option) dllFiles libDirs otherFlags
+#endif
           Log.verbf "Checker Arguments: %O" (Log.formatArgs args)
 
           let options = checker.GetProjectOptionsFromCommandLineArgs(projFileName, args)
@@ -353,7 +379,11 @@ module internal CompilerServiceExtensions =
           t.Name
       and getFSharpTypeName (t:System.Type) =
           let optFsharpName =
+#if !NETSTANDARD1_5
               match FSharpAssembly.FromAssembly t.Assembly with
+#else
+              match FSharpAssembly.FromAssembly (t.GetTypeInfo().Assembly) with
+#endif
               | Some fsAssembly ->
                   match fsAssembly.FindType t with
                   | Some entity -> Some entity.DisplayName
@@ -370,7 +400,12 @@ module internal CompilerServiceExtensions =
       member x.FSharpFullName = x.Namespace + "." + x.FSharpName
 
   module internal TypeParamHelper =
+#if !NETSTANDARD1_5
       let rec getFSharpTypeParameterList (t:System.Type) =
+#else
+      let rec getFSharpTypeParameterList (tk:System.Type) =
+          let t = tk.GetTypeInfo()
+#endif
           let builder = new System.Text.StringBuilder()
           if t.IsGenericType then
               let args = t.GetGenericArguments()
@@ -400,7 +435,9 @@ type internal InteractionResult =
   { Output : OutputData; Error : OutputData }
 
 /// This exception indicates that an exception happened while compiling or executing given F# code.
+#if !NETSTANDARD1_5
 [<System.Serializable>]
+#endif
 #if YAAF_FSHARP_SCRIPTING_PUBLIC
 type FsiEvaluationException =
 #else
@@ -413,6 +450,7 @@ type internal FsiEvaluationException =
       inherit System.Exception(msg, inner)
       input = input
       result = result }
+#if !NETSTANDARD1_5
     new (info:System.Runtime.Serialization.SerializationInfo, context:System.Runtime.Serialization.StreamingContext) = {
         inherit System.Exception(info, context)
         input = info.GetString("Input")
@@ -434,6 +472,7 @@ type internal FsiEvaluationException =
       info.AddValue("Result_Error_FsiOutput", x.result.Error.FsiOutput)
       info.AddValue("Result_Error_ScriptOutput", x.result.Error.ScriptOutput)
       info.AddValue("Result_Error_Merged", x.result.Error.Merged)
+#endif
     member x.Result with get () = x.result
     member x.Input with get () = x.input
     override x.ToString () =
@@ -443,7 +482,9 @@ type internal FsiEvaluationException =
         (nl x.Result.Error.Merged) (nl x.Result.Output.Merged) (nl x.Input) (base.ToString())
 
 /// Exception for invalid expression types
+#if !NETSTANDARD1_5
 [<System.Serializable>]
+#endif
 #if YAAF_FSHARP_SCRIPTING_PUBLIC
 type FsiExpressionTypeException =
 #else
@@ -456,11 +497,13 @@ type internal FsiExpressionTypeException =
       inherit FsiEvaluationException(msg, input, result, null)
       expected = expect
       value = value }
+#if !NETSTANDARD1_5
     new (info:System.Runtime.Serialization.SerializationInfo, context:System.Runtime.Serialization.StreamingContext) = {
       inherit FsiEvaluationException(info, context)
       expected = null
       value = None
     }
+#endif
     member x.Value with get () = x.value
     member x.ExpectedType with get () = x.expected
 
@@ -714,6 +757,7 @@ type internal FsiOptions =
       WarnAsErrorList = []
       ScriptArgs  = [] }
   static member Default =
+#if !NETSTANDARD1_5
     // find a FSharp.Core.dll with optdata and sigdata
     let runtimeDir = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory()
     let includes =
@@ -724,6 +768,9 @@ type internal FsiOptions =
         // See also https://github.com/fsharp/fsharp/pull/389, https://github.com/fsharp/fsharp/pull/388
         [ runtimeDir; System.IO.Path.Combine (monoDir, "4.0") ]
       else [ runtimeDir ]
+#else
+    let includes = []
+#endif
     let fsCore = FSharpAssemblyHelper.findFSCore [] includes
     Log.verbf "Using FSharp.Core: %s" fsCore
     { FsiOptions.Empty with

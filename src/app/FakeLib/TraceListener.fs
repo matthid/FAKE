@@ -1,6 +1,12 @@
-﻿[<AutoOpen>]
-/// Defines default listeners for build output traces
+﻿/// Defines default listeners for build output traces
+#if CORE_CLR
 module Fake.TraceListener
+open Fake.BuildServer
+open Fake.Environment
+#else
+[<AutoOpen>]
+module Fake.TraceListener
+#endif
 
 open System
 
@@ -93,6 +99,11 @@ let defaultConsoleTraceListener =
 /// Specifies if the XmlWriter should close tags automatically
 let mutable AutoCloseXmlWriter = false
 
+/// A List with all registered listeners
+let listeners = new Collections.Generic.List<ITraceListener>()
+
+#if !CORE_CLR
+
 /// Implements a TraceListener which writes NAnt like XML files.
 /// ## Parameters
 ///  - `xmlOutputFile` - Defines the xml output file.
@@ -135,15 +146,17 @@ type NAntXmlTraceListener(xmlOutputFile) =
             xmlWriter.Flush()
             if AutoCloseXmlWriter || msg = FinishedMessage then closeWriter()
 
-/// A List with all registered listeners
-let listeners = new Collections.Generic.List<ITraceListener>()
-
 /// Allows to register a new Xml listeners
 let addXmlListener xmlOutputFile = listeners.Add(new NAntXmlTraceListener(xmlOutputFile))
 
+#endif
+
 // register listeners
 listeners.Add defaultConsoleTraceListener
+
+#if !CORE_CLR
 if hasBuildParam "logfile" || buildServer = CCNet then addXmlListener xmlOutputFile
+#endif
 
 /// Allows to post messages to all trace listeners
 let postMessage x = listeners.ForEach(fun listener -> listener.Write x)
