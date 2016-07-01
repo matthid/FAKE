@@ -578,7 +578,7 @@ let internal runFAKEScriptWithFsiArgsAndRedirectMessages printDetails (FsiArgs(f
         if Path.IsPathRooted scriptPath then
             scriptPath
         else
-            Path.Combine(Directory.GetCurrentDirectory(), scriptPath)
+            Path.Combine(getCurrentDirectory(), scriptPath)
 
     let cacheInfo = getCacheInfoFromScript printDetails fsiOptions scriptPath
 

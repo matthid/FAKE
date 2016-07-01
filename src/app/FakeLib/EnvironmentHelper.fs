@@ -40,7 +40,7 @@ let inline (</>) path1 path2 = combinePathsNoTrim path1 path2
 let inline normalizePath (path : string) = 
     path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar)
 
-let currentDirectory () =
+let getCurrentDirectory () =
 #if CORE_CLR
     System.IO.Directory.GetCurrentDirectory()
 #else

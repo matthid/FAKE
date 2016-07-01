@@ -34,7 +34,7 @@ let containsParam param = Seq.map toLower >> Seq.exists ((=) (toLower param))
 
 let paramIsHelp param = containsParam param ["help"; "?"; "/?"; "-h"; "--help"; "/h"; "/help"]
 
-let buildScripts = System.IO.Directory.EnumerateFiles(currentDirectory(), "*.fsx") |> Seq.toList
+let buildScripts = System.IO.Directory.EnumerateFiles(getCurrentDirectory(), "*.fsx") |> Seq.toList
 
 // http://stackoverflow.com/questions/298830/split-string-containing-command-line-parameters-into-string-in-c-sharp/298990#298990
 let splitBy f (s:string) =
