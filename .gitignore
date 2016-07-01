@@ -54,6 +54,7 @@ _NCrunch_FAKE/
 tools/FSharp.Compiler.Service
 tools/FSharp.Formatting.CommandTool/
 tools/SourceLink.Fake
+/testbuild.fsx
 
 release.cmd
 Samples/typescript/out/
