@@ -1,4 +1,5 @@
 open System
+open Fake
 open Fake.Environment
 open Fake.String
 open Fake.Trace
@@ -134,7 +135,7 @@ let handleCli (results:ParseResult<Cli.FakeArgs>) =
                   
         //TODO if printDetails then printEnvironment cmdArgs args
         let useCache = not (runArgs.Contains <@ Cli.RunArgs.NoCache @>)
-        if not (runBuildScriptWithFsiArgsAt printDetails fsiArgs envVars useCache) then exitCode <- 1
+        if not (FakeRuntime.prepareAndRunScript printDetails fsiArgs envVars useCache) then exitCode <- 1
         else if printDetails then log "Ready."
       with
       | exn ->

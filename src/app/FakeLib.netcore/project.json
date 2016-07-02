@@ -24,7 +24,8 @@
         "../FakeLib/BuildServerHelper.fs",
         "../FakeLib/TraceListener.fs",
         "../FakeLib/TraceHelper.fs",
-        "../FakeLib/FSIHelper.fs"
+        "../FakeLib/FSIHelper.fs",
+        "FakeRuntime.fs"
       ]
     }
   },
@@ -33,6 +34,9 @@
       "version": "1.0.0-preview2-*",
       "imports": "dnxcore50"
     }
+  },
+  "dependencies": {
+    "Paket.Core.netcore": "3.4.0-alpha002"
   },
   "frameworks": {
     "net46": {
