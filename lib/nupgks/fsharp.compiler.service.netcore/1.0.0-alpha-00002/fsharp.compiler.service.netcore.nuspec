@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>FSharp.Compiler.Service.netcore</id>
+    <version>1.0.0-alpha-00002</version>
+    <title>FSharp.Compiler.Service</title>
+    <authors>Microsoft Corporation,Dave Thomas,Anh-Dung Phan,Tomas Petricek</authors>
+    <owners>Microsoft Corporation,Dave Thomas,Anh-Dung Phan,Tomas Petricek</owners>
+    <licenseUrl>https://github.com/fsharp/FSharp.Compiler.Service/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/fsharp/FSharp.Compiler.Service</projectUrl>
+    <iconUrl>https://raw.github.com/fsharp/FSharp.Compiler.Service/master/misc/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>The F# compiler services package contains a custom build of the F# compiler that exposes additional functionality for implementing F# language bindings, additional tools based on the compiler or refactoring tools. The package also includes F# interactive service that can be used for embedding F# scripting into your applications.</description>
+    <summary>F# compiler services for creating IDE tools, language extensions and for F# embedding.</summary>
+    <releaseNotes></releaseNotes>
+    <copyright></copyright>
+    <tags>F# fsharp interactive compiler editor</tags>
+    <dependencies>
+      <group targetFramework=".NETStandard1.6">
+        <dependency id="NETStandard.Library" version="[1.6.0, )" />
+        <dependency id="System.Diagnostics.TraceSource" version="[4.0.0, )" />
+        <dependency id="Microsoft.FSharp.Core.netcore" version="[1.0.0-alpha-160629, )" />
+        <dependency id="System.Collections.Immutable" version="[1.2.0, )" />
+        <dependency id="System.Security.Cryptography.Algorithms" version="[4.2.0, )" />
+        <dependency id="System.Security.Cryptography.Primitives" version="[4.0.0, )" />
+        <dependency id="System.Reflection.Metadata" version="[1.4.1-beta-24227-04, )" />
+        <dependency id="System.Diagnostics.Process" version="[4.1.0, )" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>
