@@ -2,6 +2,7 @@
   "version": "1.0.0-alpha1",
   "copyright": "Appparently dotnet cli needs this.",
   "buildOptions": {
+    "debugType": "portable",
     "compilerName": "fsc",
     "define": [
       "CORE_CLR"
@@ -24,12 +25,8 @@
   },
   "tools": {
     "dotnet-compile-fsc": {
-      "version": "1.0.0-preview1-*",
-      "imports": [
-        "dnxcore50",
-        "portable-net45+win81",
-        "netstandard1.3"
-      ]
+      "version": "1.0.0-preview2-*",
+      "imports": "dnxcore50"
     }
   },
    "runtimes": {
@@ -38,14 +35,16 @@
      "osx.10.11-x64": { },
      "ubuntu.14.04-x64": { }
   },
+  "dependencies": {
+    "Argu": "3.0.0-beta02"
+  },
   "frameworks": {
     "net46": {
       "dependencies": {
         "FSharp.Core": "4.0.0.1",
         "FSharp.Compiler.Service": "3.0.0",
         "Mono.Cecil": "0.9.6.1",
-        "FakeLib.netcore": "1.0.0-alpha1",
-        "CommandLineParser": "2.0.275-beta"
+        "FakeLib.netcore": "1.0.0-alpha4"
       },
       "frameworkAssemblies": {
         "Microsoft.Build.Framework": "",
@@ -59,7 +58,7 @@
         "System.Core": ""
       }
     },
-    "netstandard1.6": {
+    "netcoreapp1.0": {
       "buildOptions": {
         "define": [
           "NETSTANDARD1_5"
@@ -72,7 +71,6 @@
       "dependencies": {
         "Mono.Cecil": "0.9.6.0",
         "FakeLib.netcore": "1.0.0-alpha4",
-        "CommandLine.DotNetCore": "1.0.0",
         "System.Console": "4.0.0",
         "System.IO.FileSystem": "4.0.1",
         "System.Diagnostics.Tracing": "4.1.0",
@@ -87,13 +85,11 @@
         "System.Runtime": "4.1.0",
         "System.Runtime.Loader": "4.0.0",
         "System.Runtime.Extensions": "4.1.0",
-        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-160509",
-        "FSharp.Compiler.Service.netcore": "1.0.0-alpha-00001",
-        "FSharp.Compiler.Service.ProjectCracker.netcore": "1.0.0-alpha-00001",
+        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-160629",
+        "FSharp.Compiler.Service.netcore": "1.0.0-alpha-00002",
         "System.Security.Cryptography.Algorithms": "4.2.0",
         "Microsoft.NETCore.App": {
-        
-            "version": "1.0.0-rc2-3002702"
+            "version": "1.0.0"
         }
       }
     }

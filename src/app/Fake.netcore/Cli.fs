@@ -3,20 +3,37 @@
 module Cli
 
 open System
-open CommandLine
+open Argu
 
-[<Verb("run", HelpText = "Run the given FAKE script.")>]
-type RunOptions = {
-  [<Option(Separator=',', Required = false, HelpText = "Overwrite some environment variables. Use env1:val1,env2:val2")>] environmentVariables : seq<string>;
-  [<Option(HelpText = "Be more verbose in the output (legacy 'PrintDetails' or -pd).")>] verbose : bool;
-  [<Option(HelpText = "Use the given string as arguments for FSI. Make sure to escape properly.")>] fsiArgs : string;
-  [<Option(HelpText = "Pauses FAKE with a Debugger.Break() near the start (legacy 'Break' or -br).")>] debugScript : bool;
-  [<Option(HelpText = "Runs only the specified target and not the dependencies.")>] singleTarget : bool;
-  [<Option(HelpText = "Disables caching of compiled script")>] noCache : bool;
-  [<Value(0, Required = false, MetaName="script", HelpText = "The build script to run, defaults to build.fsx.")>] script : string option;
-  [<Value(1, Required = false, MetaName="target", HelpText = "The the target to run, defaults to the target defined in the build script.")>] target : string option;
-}
-[<Verb("version", HelpText = "print the current version.")>]
-type VersionOptions = {
-  [<Option(HelpText = "Be more verbose in the output (legacy 'PrintDetails' or -pd).")>] verbose : bool;
-}
+
+type RunArgs =
+  | [<First>][<Mandatory>][<CliPrefix(CliPrefix.None)>][<AltCommandLine("")>] Script of string
+  | [<AltCommandLine("-t")>] Target of string
+  | [<AltCommandLine("-e")>] EnvironmentVariable of string * string
+  | [<AltCommandLine("-d")>] Debug
+  | [<AltCommandLine("-s")>] SingleTarget
+  | [<AltCommandLine("-n")>] NoCache
+  | [<Rest>] FsiArgs of string
+with
+  interface IArgParserTemplate with
+    member s.Usage =
+      match s with
+      | Script _ -> "Specify the script to run."
+      | EnvironmentVariable _ -> "Set an environment variable."
+      | FsiArgs _ -> "Arguments passed to the f# interactive."
+      | Debug _ -> "Debug the script (set a breakpoint at the start)."
+      | SingleTarget _ -> "Run only the specified target."
+      | Target _ -> "The target to run."
+      | NoCache _ -> "Disable caching of the compiled script."
+
+type FakeArgs =
+  | Version
+  | (*[<Inherit>]*) [<AltCommandLine("-v")>] Verbose
+  | [<CliPrefix(CliPrefix.None)>] Run of Argu.ParseResult<RunArgs>
+with
+  interface IArgParserTemplate with
+    member s.Usage =
+      match s with
+      | Version _ -> "Prints the version."
+      | Verbose _ -> "More verbose output."
+      | Run _ -> "Runs a build script."
