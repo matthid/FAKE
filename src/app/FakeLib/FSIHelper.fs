@@ -161,7 +161,7 @@ let fsiPath =
         findPath "FSIPath" FSIPath "fsi.exe"
 #endif
 type FsiArgs =
-    FsiArgs of string list * string * string list with
+    FsiArgs of fsiOptions:string list * script:string * scriptArgs:string list with
     static member parse (args:string array) =
         //Find first arg that does not start with - (as these are fsi options that precede the fsx).
         match args |> Array.tryFindIndex (fun arg -> arg.StartsWith("-") = false) with
