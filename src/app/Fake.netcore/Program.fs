@@ -65,8 +65,12 @@ let handleCli (results:ParseResult<Cli.FakeArgs>) =
 
   let mutable exitCode = 0
   let printDetails = results.Contains <@ Cli.FakeArgs.Verbose @>
-  if printDetails then  
+
+  if printDetails then
     Paket.Logging.verbose <- true
+  Paket.Utils.autoAnswer <- Some true
+  use consoleTrace = Paket.Logging.event.Publish |> Observable.subscribe Paket.Logging.traceToConsole
+
   if results.Contains <@ Cli.FakeArgs.Version @> then
     printVersion()
   results.IterResult (<@ Cli.FakeArgs.Run @>, fun runArgs ->
