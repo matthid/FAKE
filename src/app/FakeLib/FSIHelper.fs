@@ -94,6 +94,18 @@ let getScriptHash pathsAndContents fsiOptions =
     //let hasher = HashLib.HashFactory.Checksum.CreateCRC32a()
     //hasher.ComputeString(fullContents + paths + fsiOptions).ToString()
 
+type AssemblyInfo = {
+    FullName : string
+    Version : string
+    Location : string
+}
+
+type ICachingProvider =
+    abstract TryLazyLoadCache : string -> AssemblyInfo list Lazy option
+    abstract TrySaveCache : string -> bool
+    abstract MapFsiOptions : string[] -> string[]
+    abstract ResolveAssembly : Choice<System.Reflection.AssemblyName, System.Reflection.Assembly> -> System.Reflection.Assembly
+
 module internal Cache =
     let xname name = XName.Get(name)
     let create (loadedAssemblies : Reflection.Assembly seq) =
@@ -117,27 +129,90 @@ module internal Cache =
             |> Seq.iter(assemblies.Add)
         doc
 
-    type AssemblyInfo = {
-        Location : string
-        FullName : string
-        Version : string
-    }
-
-    type CacheConfig = {
-        Assemblies : AssemblyInfo seq
-    }
-    let read (path : string) : CacheConfig = 
+    let read (path : string) = 
         let doc = XDocument.Load(path)
         //let root = doc.Descendants() |> Seq.exactlyOne
         let assembliesEle = doc.Descendants(xname "Assemblies") |> Seq.exactlyOne
-        let assemblies = 
-            assembliesEle.Descendants()
-            |> Seq.map(fun assemblyEle ->
-                let get name = assemblyEle.Attribute(xname name).Value
-                { Location = get "Location"
-                  FullName = get "FullName"
-                  Version = get "Version" })
-        { Assemblies = assemblies }
+        assembliesEle.Descendants()
+        |> Seq.map(fun assemblyEle ->
+            let get name = assemblyEle.Attribute(xname name).Value
+            { Location = get "Location"
+              FullName = get "FullName"
+              Version = get "Version" })
+        |> Seq.toList
+
+    let defaultProvider =
+#if !NETSTANDARD1_6
+        { new ICachingProvider with
+            member x.MapFsiOptions options = options
+            member x.TryLazyLoadCache (cachePath) =
+                if File.Exists cachePath then
+                    Some (lazy (read cachePath))
+                else None
+            //member x.GetAssembliesFromCache c = c.Assemblies
+            member x.ResolveAssembly a =
+                match a with
+                | Choice1Of2 name -> null
+                | Choice2Of2 a -> a
+            member x.TrySaveCache (cachePath) =
+                let dynamicAssemblies =
+                    System.AppDomain.CurrentDomain.GetAssemblies()
+                    |> Seq.filter(fun assem -> assem.IsDynamic)
+                    |> Seq.map(fun assem -> assem.GetName().Name)
+                    |> Seq.filter(fun assem -> assem <> "FSI-ASSEMBLY")
+                    |> Seq.filter(fun assem -> not <| assem.StartsWith "FAKE_CACHE_")
+                    // General Reflection.Emit helper (most likely harmless to ignore)
+                    |> Seq.filter(fun assem -> assem <> "Anonymously Hosted DynamicMethods Assembly")
+                    // RazorEngine generated
+                    |> Seq.filter(fun assem -> assem <> "RazorEngine.Compilation.ImpromptuInterfaceDynamicAssembly")
+                    |> Seq.cache
+                if dynamicAssemblies |> Seq.length > 0 then
+                    let msg =
+                        sprintf "Dynamic assemblies were generated during evaluation of script (%s).\nCan not save cache."
+                            (System.String.Join(", ", dynamicAssemblies))
+                    trace msg
+                    false
+                else
+                    let assemblies =
+                        System.AppDomain.CurrentDomain.GetAssemblies()
+                        |> Seq.filter(fun assem -> not assem.IsDynamic)
+                        |> Seq.filter(fun assem -> not <| assem.GetName().Name.StartsWith "FAKE_CACHE_")
+                        // They are not dynamic, but can't be re-used either.
+                        |> Seq.filter(fun assem -> not <| assem.GetName().Name.StartsWith("CompiledRazorTemplates.Dynamic.RazorEngine_"))
+
+                    let cacheConfig : XDocument = create assemblies
+                    cacheConfig.Save (cachePath)
+                    true }
+#else
+        { new ICachingProvider with
+            member x.MapFsiOptions opts =
+                let options = FsiOptions.ofArgs opts
+                if not options.NoFramework then // Caller should take care!
+                    let basePath = System.AppContext.BaseDirectory
+                    let references =
+                        System.IO.Directory.GetFiles(basePath, "*.dll")
+                        |> Seq.filter (fun r -> not (System.IO.Path.GetFileName(r).ToLowerInvariant().StartsWith("api-ms")))
+                        |> Seq.filter (fun r ->
+                            try Mono.Cecil.ModuleDefinition.ReadModule(r) |> ignore
+                                true
+                            with e -> false)
+                        |> Seq.toList
+                    { options with
+                        NoFramework = true
+                        Debug = Some DebugMode.Portable
+                        References = (references) @ options.References }
+                else options
+                |> (fun options -> options.AsArgs)
+            member x.TryLazyLoadCache (cachePath) = 
+                traceFAKE "Default caching is disabled on dotnetcore, see https://github.com/dotnet/coreclr/issues/919#issuecomment-219212910"
+                None
+            //member x.GetAssembliesFromCache c = c.Assemblies
+            member x.ResolveAssembly a =
+                match a with
+                | Choice1Of2 name -> null
+                | Choice2Of2 a -> a
+            member x.TrySaveCache (cachePath) = false }
+#endif
 
 #if !CORE_CLR
 /// The path to the F# Interactive tool.
@@ -228,18 +303,19 @@ let hashRegex = Text.RegularExpressions.Regex("(?<script>.+)_(?<hash>[a-zA-Z0-9]
 
 type private CacheInfo =
   {
+    Provider : ICachingProvider
     ScriptFileName : string
     ScriptHash : string
     AssemblyPath : string
     AssemblyWarningsPath : string
     CacheConfigPath : string
-    CacheConfig : Lazy<Cache.CacheConfig>
+    CacheConfig : Lazy<AssemblyInfo list> option
     IsValid : bool
   }
 
 /// gets a cache entry for the given script.
 /// We need to consider fsiOptions as they might contain --defines.
-let private getCacheInfoFromScript printDetails fsiOptions scriptPath =
+let private getCacheInfoFromScript (provider:ICachingProvider) printDetails fsiOptions scriptPath =
     let allScriptContents = getAllScripts scriptPath
     let scriptHash = getScriptHash allScriptContents fsiOptions
     //TODO this is only calculating the hash for the input file, not anything #load-ed
@@ -249,19 +325,19 @@ let private getCacheInfoFromScript printDetails fsiOptions scriptPath =
     let assemblyPath = hashPath + ".dll"
     let assemblyWarningsPath = hashPath + "_warnings.txt"
     let cacheConfigPath = hashPath + "_config.xml"
-    let cacheConfig = lazy Cache.read cacheConfigPath
+    let cacheConfig = provider.TryLazyLoadCache cacheConfigPath
 #if NETSTANDARD1_5
     let loadContext = AssemblyLoadContext.Default
 #endif
     let cacheValid =
         let cacheFilesExistAndAreValid =
             File.Exists(assemblyPath) &&
-            File.Exists(cacheConfigPath) &&
+            cacheConfig.IsSome &&
             File.Exists(assemblyWarningsPath) &&
-            cacheConfig.Value.Assemblies |> Seq.length > 0
+            cacheConfig.Value.Value |> Seq.length > 0
         if cacheFilesExistAndAreValid then
             let loadedAssemblies =
-                cacheConfig.Value.Assemblies
+                cacheConfig.Value.Value
                 |> Seq.choose (fun assemInfo ->
                     try let assem =
                             if assemInfo.Location <> "" then
@@ -296,26 +372,28 @@ let private getCacheInfoFromScript printDetails fsiOptions scriptPath =
                 match knownAssemblies.TryGetValue(strName) with
                 | true, a ->
                     if printDetails then tracefn "Redirect assembly load to known assembly: %s" strName
-                    a
+                    Choice2Of2 a
                 | _ ->
                     let token = name.GetPublicKeyToken()
                     match loadedAssemblies
-                          |> Seq.map snd
-                          |> Seq.tryFind (fun asem ->
-                              let n = asem.GetName()
-                              n.Name = name.Name &&
-                              (isNull token || // When null accept what we have.
+                        |> Seq.map snd
+                        |> Seq.tryFind (fun asem ->
+                            let n = asem.GetName()
+                            n.Name = name.Name &&
+                            (isNull token || // When null accept what we have.
                                 n.GetPublicKeyToken() = token)) with
                     | Some (asem) ->
                         traceFAKE "Redirect assembly from '%s' to '%s'" strName asem.FullName
-                        asem
+                        Choice2Of2 asem
                     | _ ->
                         if printDetails then traceFAKE "Could not resolve '%s'" strName
-                        null))
-            assemVersionValidCount = Seq.length cacheConfig.Value.Assemblies
+                        Choice1Of2 name
+                |> provider.ResolveAssembly))
+            assemVersionValidCount = Seq.length cacheConfig.Value.Value
         else
             false
-    { ScriptFileName = scriptFileName
+    { Provider = provider
+      ScriptFileName = scriptFileName
       ScriptHash = scriptHash
       AssemblyPath = assemblyPath
       AssemblyWarningsPath = assemblyWarningsPath
@@ -378,14 +456,15 @@ let private runScriptCached printDetails cacheInfo out err =
 /// Handles a cache store operation, this should not throw as it is executed in a finally block and
 /// therefore might eat other exceptions. And a caching error is not critical.
 let private handleCaching printDetails (session:IFsiSession) fsiErrorOutput (cacheDir:DirectoryInfo) cacheInfo  =
-#if NETSTANDARD1_5
-    traceFAKE "Caching is disabled on CoreCLR, see https://github.com/dotnet/coreclr/issues/919#issuecomment-219212910"
-#else
     try
         let wishName = "FAKE_CACHE_" + Path.GetFileNameWithoutExtension cacheInfo.ScriptFileName + "_" + cacheInfo.ScriptHash
         let d = session.DynamicAssemblyBuilder
         let name = "FSI-ASSEMBLY"
+#if NETSTANDARD1_6
+        failwith "Wow. Dotnetcore currently doesn't support saving dynamic assemblies. See https://github.com/dotnet/coreclr/issues/1709, https://github.com/dotnet/corefx/issues/4491. As it only hits F# it will probably never be implemented ;). One way to solve this would be to use IKVM.Reflection or Mono.Cecil in FSharp.Compiler.Service. But that's probably a lot of work. Feel free to start :). For now Caching cannot work."
+#else
         d.Save(name + ".dll")
+#endif
         if not <| Directory.Exists cacheDir.FullName then
             let di = Directory.CreateDirectory cacheDir.FullName
             di.Attributes <- FileAttributes.Directory ||| FileAttributes.Hidden
@@ -403,9 +482,38 @@ let private handleCaching printDetails (session:IFsiSession) fsiErrorOutput (cac
             // Strictly speaking this is not needed, however this helps with executing
             // the test suite, as the runtime will only load a single
             // FSI-ASSEMBLY with version 0.0.0.0 by using LoadFrom...
+#if NETSTANDARD1_6
+            let reader =
+                let searchpaths =
+                    [ AppContext.BaseDirectory ]
+                let resolve name =
+                    let n = AssemblyName(name)
+                    // Maybe caching provider can already tell us
+                    match cacheInfo.CacheConfig |> Option.bind (fun c -> c.Value |> List.tryFind (fun a -> a.FullName = name)) with
+                    | Some f -> f.Location
+                    | None ->
+                        match searchpaths
+                              |> Seq.collect (fun p -> Directory.GetFiles(p, "*.dll"))
+                              |> Seq.tryFind (fun f -> f.ToLowerInvariant().Contains(n.Name.ToLowerInvariant())) with
+                        | Some f -> f
+                        | None ->
+                            failwithf "Could not resolve '%s'" name
+                { new Mono.Cecil.IAssemblyResolver with 
+                    member x.Resolve (name : string) =
+                        Mono.Cecil.AssemblyDefinition.ReadAssembly(
+                            resolve name,
+                            new Mono.Cecil.ReaderParameters(AssemblyResolver = x))
+                    member x.Resolve (name : string, parms : Mono.Cecil.ReaderParameters) =
+                        Mono.Cecil.AssemblyDefinition.ReadAssembly(resolve name, parms)
+                    member x.Resolve (name : Mono.Cecil.AssemblyNameReference) =
+                        x.Resolve(name.FullName)
+                    member x.Resolve (name : Mono.Cecil.AssemblyNameReference, parms : Mono.Cecil.ReaderParameters) =
+                        x.Resolve(name.FullName, parms) }
+#else
             let reader = new Mono.Cecil.DefaultAssemblyResolver() // see https://github.com/fsharp/FAKE/issues/1084
             reader.AddSearchDirectory (Path.GetDirectoryName fakePath)
             reader.AddSearchDirectory (Path.GetDirectoryName typeof<string option>.Assembly.Location)
+#endif
             let readerParams = new Mono.Cecil.ReaderParameters(AssemblyResolver = reader)
             let asem = Mono.Cecil.AssemblyDefinition.ReadAssembly(name + ".dll", readerParams)
             asem.Name <- new Mono.Cecil.AssemblyNameDefinition(wishName, new Version(0,0,1))
@@ -422,67 +530,24 @@ let private handleCaching printDetails (session:IFsiSession) fsiErrorOutput (cac
                 if File.Exists(name + ext) then
                     File.Delete(name + ext)
 
-        let dynamicAssemblies =
-            System.AppDomain.CurrentDomain.GetAssemblies()
-            |> Seq.filter(fun assem -> assem.IsDynamic)
-            |> Seq.map(fun assem -> assem.GetName().Name)
-            |> Seq.filter(fun assem -> assem <> "FSI-ASSEMBLY")
-            |> Seq.filter(fun assem -> not <| assem.StartsWith "FAKE_CACHE_")
-            // General Reflection.Emit helper (most likely harmless to ignore)
-            |> Seq.filter(fun assem -> assem <> "Anonymously Hosted DynamicMethods Assembly")
-            // RazorEngine generated
-            |> Seq.filter(fun assem -> assem <> "RazorEngine.Compilation.ImpromptuInterfaceDynamicAssembly")
-            |> Seq.cache
-        if dynamicAssemblies |> Seq.length > 0 then
-            let msg =
-                sprintf "Dynamic assemblies were generated during evaluation of script (%s).\nCan not save cache."
-                    (System.String.Join(", ", dynamicAssemblies))
-            trace msg
-
-        else
-            let assemblies =
-                System.AppDomain.CurrentDomain.GetAssemblies()
-                |> Seq.filter(fun assem -> not assem.IsDynamic)
-                |> Seq.filter(fun assem -> not <| assem.GetName().Name.StartsWith "FAKE_CACHE_")
-                // They are not dynamic, but can't be re-used either.
-                |> Seq.filter(fun assem -> not <| assem.GetName().Name.StartsWith("CompiledRazorTemplates.Dynamic.RazorEngine_"))
-
-            let cacheConfig : XDocument = Cache.create assemblies
-            cacheConfig.Save(cacheInfo.CacheConfigPath)
+        if cacheInfo.Provider.TrySaveCache(cacheInfo.CacheConfigPath) then
             if printDetails then trace (System.Environment.NewLine + "Saved cache")
     with ex ->
+#if NETSTANDARD1_6
+        traceFAKE "Caching is not working on dotnetcore: %s" ex.Message
+#else
         // Caching errors are not critical, and we shouldn't throw in a finally clause.
         traceFAKE "CACHING ERROR - please open a issue on FAKE and /cc @matthid\n\nError: %O" ex
+#endif
         if File.Exists cacheInfo.AssemblyWarningsPath then
             // Invalidates the cache
             try File.Delete cacheInfo.AssemblyWarningsPath with _ -> ()
-#endif
 
-/// Run a given script unchacked, saves the cache if useCache is set to true.
+/// Run a given script uncached, saves the cache if useCache is set to true.
 /// deletes any existing caching for the given script.
 let private runScriptUncached (useCache, scriptPath, fsiOptions) printDetails cacheInfo out err =
-    let options = FsiOptions.ofArgs fsiOptions
-#if NETSTANDARD1_5
-    let basePath = System.AppContext.BaseDirectory
-    let references =
-        System.IO.Directory.GetFiles(basePath, "*.dll")
-        |> Seq.filter (fun r -> not (System.IO.Path.GetFileName(r).ToLowerInvariant().StartsWith("api-ms")))
-        |> Seq.filter (fun r ->
-            try Mono.Cecil.ModuleDefinition.ReadModule(r) |> ignore
-                true
-            with e -> 
-                printfn "No assembly (%s): %O" r e.Message
-                false)
-        |> Seq.toList
-    let split = "\n\t - "
-    printfn "references %s%s" (if references.Length > 0 then split else "") (System.String.Join(split, references))
-    // Msbuild code in FCS is broken on .net core
-    let options =
-      { options with
-          NoFramework = true
-          Debug = Some DebugMode.Portable
-          References = (references) @ options.References }
-#endif
+    let options = fsiOptions |> Seq.toArray |> cacheInfo.Provider.MapFsiOptions |> FsiOptions.ofArgs
+
     let getScriptAndHash fileName =
         let matched = hashRegex.Match(fileName)
         matched.Groups.Item("script").Value, matched.Groups.Item("hash").Value
@@ -552,7 +617,7 @@ let private runScriptUncached (useCache, scriptPath, fsiOptions) printDetails ca
             handleCaching printDetails session fsiErrorOutput cacheDir cacheInfo
 
 /// Run the given FAKE script with fsi.exe at the given working directory. Provides full access to Fsi options and args. Redirect output and error messages.
-let internal runFAKEScriptWithFsiArgsAndRedirectMessages printDetails (FsiArgs(fsiOptions, scriptPath, scriptArgs)) env onErrMsg onOutMsg useCache =
+let internal runFakeWithCache provider printDetails (FsiArgs(fsiOptions, scriptPath, scriptArgs)) env onErrMsg onOutMsg useCache =
     if printDetails then traceFAKE "Running Buildscript: %s" scriptPath
     
     if printDetails then
@@ -580,7 +645,7 @@ let internal runFAKEScriptWithFsiArgsAndRedirectMessages printDetails (FsiArgs(f
         else
             Path.Combine(getCurrentDirectory(), scriptPath)
 
-    let cacheInfo = getCacheInfoFromScript printDetails fsiOptions scriptPath
+    let cacheInfo = getCacheInfoFromScript provider printDetails fsiOptions scriptPath
 
     use out = ScriptHost.CreateForwardWriter onOutMsg
     use err = ScriptHost.CreateForwardWriter onErrMsg
@@ -597,6 +662,9 @@ Error: %O""" ex
             runScriptUncached (useCache, scriptPath, fsiOptions) printDetails cacheInfo out err
     else
         runScriptUncached (useCache, scriptPath, fsiOptions) printDetails cacheInfo out err
+
+let internal runFAKEScriptWithFsiArgsAndRedirectMessages printDetails fsiArgs env onErrMsg onOutMsg useCache =
+    runFakeWithCache Cache.defaultProvider printDetails fsiArgs env onErrMsg onOutMsg useCache
 
 let internal onMessage isError =
     let printer = if isError && TraceListener.importantMessagesToStdErr then eprintf else printf

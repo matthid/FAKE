@@ -65,6 +65,8 @@ let handleCli (results:ParseResult<Cli.FakeArgs>) =
 
   let mutable exitCode = 0
   let printDetails = results.Contains <@ Cli.FakeArgs.Verbose @>
+  if printDetails then  
+    Paket.Logging.verbose <- true
   if results.Contains <@ Cli.FakeArgs.Version @> then
     printVersion()
   results.IterResult (<@ Cli.FakeArgs.Run @>, fun runArgs ->

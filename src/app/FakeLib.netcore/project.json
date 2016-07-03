@@ -4,7 +4,8 @@
     "debugType": "portable",
     "compilerName": "fsc",
     "define": [
-      "CORE_CLR"
+      "CORE_CLR",
+      "EXPLICIT_DEPENDENCIES"
     ],
     "emitEntryPoint": false,
     "xmlDoc": true,
