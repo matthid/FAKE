@@ -101,8 +101,9 @@ type AssemblyInfo = {
 }
 
 type ICachingProvider =
-    abstract TryLazyLoadCache : string -> AssemblyInfo list Lazy option
-    abstract TrySaveCache : string -> bool
+    abstract TryLoadCache : configFile:string -> AssemblyInfo list option
+    abstract TrySaveCache : configFile:string -> bool
+    abstract Invalidate : configFile:string -> unit
     abstract MapFsiOptions : string[] -> string[]
     abstract ResolveAssembly : Choice<System.Reflection.AssemblyName, System.Reflection.Assembly> -> System.Reflection.Assembly
 
@@ -145,9 +146,10 @@ module internal Cache =
 #if !NETSTANDARD1_6
         { new ICachingProvider with
             member x.MapFsiOptions options = options
-            member x.TryLazyLoadCache (cachePath) =
+            member x.Invalidate cachePath = if File.Exists cachePath then File.Delete cachePath
+            member x.TryLoadCache (cachePath) =
                 if File.Exists cachePath then
-                    Some (lazy (read cachePath))
+                    Some (read cachePath)
                 else None
             //member x.GetAssembliesFromCache c = c.Assemblies
             member x.ResolveAssembly a =
@@ -203,7 +205,8 @@ module internal Cache =
                         References = (references) @ options.References }
                 else options
                 |> (fun options -> options.AsArgs)
-            member x.TryLazyLoadCache (cachePath) = 
+            member x.Invalidate cachePath = if File.Exists cachePath then File.Delete cachePath
+            member x.TryLoadCache (cachePath) = 
                 traceFAKE "Default caching is disabled on dotnetcore, see https://github.com/dotnet/coreclr/issues/919#issuecomment-219212910"
                 None
             //member x.GetAssembliesFromCache c = c.Assemblies
@@ -299,7 +302,11 @@ let executeFSIWithScriptArgsAndReturnMessages script (scriptArgs: string[]) =
 open Microsoft.FSharp.Compiler.Interactive.Shell
 open System.Reflection
 
-let hashRegex = Text.RegularExpressions.Regex("(?<script>.+)_(?<hash>[a-zA-Z0-9]+)(\.dll|_config\.xml|_warnings\.txt)$", System.Text.RegularExpressions.RegexOptions.Compiled)
+let getScriptAndHash =
+    let hashRegex = Text.RegularExpressions.Regex("(?<script>.+)_(?<hash>[a-zA-Z0-9]+)(\.dll|_config\.xml|_warnings\.txt)$", System.Text.RegularExpressions.RegexOptions.Compiled)
+    fun fileName ->
+        let matched = hashRegex.Match(fileName)
+        matched.Groups.Item("script").Value, matched.Groups.Item("hash").Value
 
 type private CacheInfo =
   {
@@ -309,7 +316,6 @@ type private CacheInfo =
     AssemblyPath : string
     AssemblyWarningsPath : string
     CacheConfigPath : string
-    CacheConfig : Lazy<AssemblyInfo list> option
     IsValid : bool
   }
 
@@ -321,11 +327,12 @@ let private getCacheInfoFromScript (provider:ICachingProvider) printDetails fsiO
     //TODO this is only calculating the hash for the input file, not anything #load-ed
     
     let scriptFileName = Path.GetFileName(scriptPath)
-    let hashPath = (Path.GetDirectoryName scriptPath) + "/.fake/" + scriptFileName + "_" + scriptHash
+    let fakeDir = Path.Combine(Path.GetDirectoryName scriptPath, ".fake")
+    let hashPath = Path.Combine(fakeDir, scriptFileName + "_" + scriptHash)
     let assemblyPath = hashPath + ".dll"
     let assemblyWarningsPath = hashPath + "_warnings.txt"
     let cacheConfigPath = hashPath + "_config.xml"
-    let cacheConfig = provider.TryLazyLoadCache cacheConfigPath
+    let cacheConfig = provider.TryLoadCache cacheConfigPath
 #if NETSTANDARD1_5
     let loadContext = AssemblyLoadContext.Default
 #endif
@@ -334,10 +341,10 @@ let private getCacheInfoFromScript (provider:ICachingProvider) printDetails fsiO
             File.Exists(assemblyPath) &&
             cacheConfig.IsSome &&
             File.Exists(assemblyWarningsPath) &&
-            cacheConfig.Value.Value |> Seq.length > 0
+            cacheConfig.Value |> Seq.length > 0
         if cacheFilesExistAndAreValid then
             let loadedAssemblies =
-                cacheConfig.Value.Value
+                cacheConfig.Value
                 |> Seq.choose (fun assemInfo ->
                     try let assem =
                             if assemInfo.Location <> "" then
@@ -389,16 +396,16 @@ let private getCacheInfoFromScript (provider:ICachingProvider) printDetails fsiO
                         if printDetails then traceFAKE "Could not resolve '%s'" strName
                         Choice1Of2 name
                 |> provider.ResolveAssembly))
-            assemVersionValidCount = Seq.length cacheConfig.Value.Value
+            assemVersionValidCount = Seq.length cacheConfig.Value
         else
             false
+    if not cacheValid then provider.Invalidate(cacheConfigPath)
     { Provider = provider
       ScriptFileName = scriptFileName
       ScriptHash = scriptHash
       AssemblyPath = assemblyPath
       AssemblyWarningsPath = assemblyWarningsPath
       CacheConfigPath = cacheConfigPath
-      CacheConfig = cacheConfig
       IsValid = cacheValid }
 
 /// because it is used by test code
@@ -489,7 +496,8 @@ let private handleCaching printDetails (session:IFsiSession) fsiErrorOutput (cac
                 let resolve name =
                     let n = AssemblyName(name)
                     // Maybe caching provider can already tell us
-                    match cacheInfo.CacheConfig |> Option.bind (fun c -> c.Value |> List.tryFind (fun a -> a.FullName = name)) with
+                    match cacheInfo.Provider.TryLoadCache (cacheInfo.CacheConfigPath) 
+                          |> Option.bind (List.tryFind (fun a -> a.FullName = name)) with
                     | Some f -> f.Location
                     | None ->
                         match searchpaths
@@ -548,9 +556,6 @@ let private handleCaching printDetails (session:IFsiSession) fsiErrorOutput (cac
 let private runScriptUncached (useCache, scriptPath, fsiOptions) printDetails cacheInfo out err =
     let options = fsiOptions |> Seq.toArray |> cacheInfo.Provider.MapFsiOptions |> FsiOptions.ofArgs
 
-    let getScriptAndHash fileName =
-        let matched = hashRegex.Match(fileName)
-        matched.Groups.Item("script").Value, matched.Groups.Item("hash").Value
     let cacheDir = DirectoryInfo(Path.Combine(Path.GetDirectoryName(scriptPath),".fake"))
     if useCache then
         // If we are here that proably means that

@@ -1,7 +1,8 @@
 (* -- Fake Dependencies paket-inline
-source http://nuget.org/api/v2
+source https://nuget.org/api/v2
 
 nuget System.Xml.XmlDocument ~> 4.0
+nuget System.Security.Cryptography.Algorithms ~> 4.0
 -- Fake Dependencies -- *)
 #load "./.fake/unusedDependencies.fsx/loadDependencies.fsx"
 

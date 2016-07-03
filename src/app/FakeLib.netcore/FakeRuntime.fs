@@ -87,32 +87,8 @@ let parseHeader scriptCacheDir (f : RawFakeSection) =
     PaketDependencies (Paket.Dependencies(file), group)
   | _ -> failwithf "unknown dependencies header '%s'" f.Header 
 
-let paketCachingProvider assemblies =
-  { new Fake.Fsi.ICachingProvider with
-      member x.MapFsiOptions opts =
-          let options = Yaaf.FSharp.Scripting.FsiOptions.ofArgs opts
-          let references = assemblies |> List.map (fun (a:Fake.Fsi.AssemblyInfo) -> a.Location)
-          { options with
-              NoFramework = true
-              Debug = Some Yaaf.FSharp.Scripting.DebugMode.Portable
-              References = references @ options.References }
-          |> fun options -> options.AsArgs
-      member x.TryLazyLoadCache (cachePath) = Some (lazy (assemblies))
-      member x.ResolveAssembly a =
-          match a with
-          | Choice1Of2 name -> 
-            // Todo: resolve from 'assemblies'?
-            null
-          | Choice2Of2 a -> a
-      member x.TrySaveCache (cachePath) = true }
-
-let restoreDependencies cacheDir section =
-  let loadFile = Path.Combine (cacheDir, "loadDependencies.fsx")
-  match section with
-  | PaketDependencies (paketDependencies, group) ->
+  (*
     Trace.log "Restoring with paket..."
-    let groupStr = match group with Some g -> g | None -> "Main"
-    let framework = Paket.FrameworkIdentifier.DotNetStandard (Paket.DotNetStandardVersion.V1_6)
     // Check if restore is enough
     let lockFilePath = Paket.DependenciesFile.FindLockfile paketDependencies.DependenciesFile
     if File.Exists lockFilePath.FullName then
@@ -130,26 +106,81 @@ let restoreDependencies cacheDir section =
     let lockGroup = lockFile.GetGroup groupName
     
     let assemblies = 
-      lockGroup.Resolution
-      |> Seq.map (fun kv -> 
-        let packageName = kv.Key
-        let package = kv.Value
-        package)
-      |> Seq.toList
-      |> Paket.LoadingScripts.PackageAndAssemblyResolution.getPackageOrderResolvedPackage
-      |> Seq.collect (fun p ->
-        let installModel = paketDependencies.GetInstalledPackageModel(group, p.Name.ToString())
-        Paket.LoadingScripts.PackageAndAssemblyResolution.getDllsWithinPackage framework installModel)
-      |> Seq.choose (fun fi ->
-        let fullName = fi.FullName
-        try let assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly fullName
-            { Fake.Fsi.AssemblyInfo.FullName = assembly.Name.FullName
-              Fake.Fsi.AssemblyInfo.Version = assembly.Name.Version.ToString()
-              Fake.Fsi.AssemblyInfo.Location = fullName } |> Some
-        with e -> printfn "Could not load '%s': %O" fullName e; None)
-      |> Seq.toList
     File.WriteAllText(loadFile, "printfn \"loading dependencies... \"")
-    paketCachingProvider assemblies
+
+  *)
+
+
+let paketCachingProvider (paketDependencies:Paket.Dependencies) group =
+  let groupStr = match group with Some g -> g | None -> "Main"
+  let groupName = Paket.Domain.GroupName (groupStr)
+  let framework = Paket.FrameworkIdentifier.DotNetStandard (Paket.DotNetStandardVersion.V1_6)
+  let lockFilePath = Paket.DependenciesFile.FindLockfile paketDependencies.DependenciesFile
+  let restoreOrUpdate () =
+    Trace.log "Restoring with paket..."
+    if File.Exists lockFilePath.FullName then
+      // Restore only
+      paketDependencies.Restore(false, group, [], false, true)
+      |> ignore
+    else 
+      // Update
+      paketDependencies.UpdateGroup(groupStr, false, false, false, false, false, Paket.SemVerUpdateMode.NoRestriction, false)
+      |> ignore
+    let lockFile = paketDependencies.GetLockFile()
+    let lockGroup = lockFile.GetGroup groupName
+    
+    lockGroup.Resolution
+    |> Seq.map (fun kv -> 
+      let packageName = kv.Key
+      let package = kv.Value
+      package)
+    |> Seq.toList
+    |> Paket.LoadingScripts.PackageAndAssemblyResolution.getPackageOrderResolvedPackage
+    |> Seq.collect (fun p ->
+      let installModel = paketDependencies.GetInstalledPackageModel(group, p.Name.ToString())
+      Paket.LoadingScripts.PackageAndAssemblyResolution.getDllsWithinPackage framework installModel)
+    |> Seq.choose (fun fi ->
+      let fullName = fi.FullName
+      try let assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly fullName
+          { Fake.Fsi.AssemblyInfo.FullName = assembly.Name.FullName
+            Fake.Fsi.AssemblyInfo.Version = assembly.Name.Version.ToString()
+            Fake.Fsi.AssemblyInfo.Location = fullName } |> Some
+      with e -> printfn "Could not load '%s': %O" fullName e; None)
+    |> Seq.toList
+  // Restore or update immediatly, because or everything might be OK -> cached path.
+  let mutable assemblies = restoreOrUpdate()
+  { new Fake.Fsi.ICachingProvider with
+      member x.Invalidate cachePath =
+        Trace.log "Invalidating cache..."
+        if File.Exists cachePath then File.Delete cachePath
+        // TODO: In future we want to take special care for external dependency files?
+        // They should have their own hash in cache
+        // BUG: lockfile only needs to be deleted when dependencies file changed, not even when the script changed!
+        if File.Exists lockFilePath.FullName then File.Delete lockFilePath.FullName
+      member x.MapFsiOptions opts =
+          // Restore again -> cache invalid -> dependencies file might have changed.
+          assemblies <- restoreOrUpdate()
+          let options = Yaaf.FSharp.Scripting.FsiOptions.ofArgs opts
+          let references = assemblies |> List.map (fun (a:Fake.Fsi.AssemblyInfo) -> a.Location)
+          { options with
+              NoFramework = true
+              Debug = Some Yaaf.FSharp.Scripting.DebugMode.Portable
+              References = references @ options.References }
+          |> fun options -> options.AsArgs
+      member x.TryLoadCache (cachePath) = Some assemblies
+      member x.ResolveAssembly a =
+          match a with
+          | Choice1Of2 name -> 
+            // Todo: resolve from 'assemblies'?
+            null
+          | Choice2Of2 a -> a
+      member x.TrySaveCache (cachePath) = true }
+
+let restoreDependencies cacheDir section =
+  let loadFile = Path.Combine (cacheDir, "loadDependencies.fsx")
+  match section with
+  | PaketDependencies (paketDependencies, group) ->
+    paketCachingProvider paketDependencies group
     
 
 let prepareFakeScript printDetails script =
