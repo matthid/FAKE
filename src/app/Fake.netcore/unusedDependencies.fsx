@@ -7,4 +7,6 @@ nuget Microsoft.FSharp.Core.netcore
 -- Fake Dependencies -- *)
 #load "./.fake/unusedDependencies.fsx/loadDependencies.fsx"
 
+open System.Xml.XmlDocument
+
 printfn "Starting Build."
