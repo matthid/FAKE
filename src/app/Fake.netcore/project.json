@@ -36,7 +36,8 @@
      "ubuntu.14.04-x64": { }
   },
   "dependencies": {
-    "Argu": "3.0.0-beta02"
+    "Argu": "3.0.0-beta02",
+    "FakeLib.netcore": "1.0.0-alpha4"
   },
   "frameworks": {
     "net46": {
@@ -44,7 +45,6 @@
         "FSharp.Core": "4.0.0.1",
         "FSharp.Compiler.Service": "3.0.0",
         "Mono.Cecil": "0.9.6.1",
-        "FakeLib.netcore": "1.0.0-alpha4"
       },
       "frameworkAssemblies": {
         "Microsoft.Build.Framework": "",
@@ -70,7 +70,6 @@
       ],
       "dependencies": {
         "Mono.Cecil": "0.9.6.0",
-        "FakeLib.netcore": "1.0.0-alpha4",
         "System.Console": "4.0.0",
         "System.IO.FileSystem": "4.0.1",
         "System.Diagnostics.Tracing": "4.1.0",
