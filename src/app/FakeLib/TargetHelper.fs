@@ -33,7 +33,7 @@ let mutable LastDescription = null
 /// Sets the Description for the next target.
 /// [omit]
 let Description text =
-    if LastDescription <> null then
+    if not <| isNull LastDescription then
         failwithf "You can't set the description for a target twice. There is already a description: %A" LastDescription
     LastDescription <- text
 
@@ -285,7 +285,7 @@ let targetError targetName (exn:System.Exception) =
                 exn.ToString()
 
 
-    let msg = sprintf "%s%s" (error exn) (if exn.InnerException <> null then "\n" + (exn.InnerException |> error) else "")
+    let msg = sprintf "%s%s" (error exn) (if not <| isNull exn.InnerException then "\n" + (exn.InnerException |> error) else "")
     traceError <| sprintf "Running build failed.\nError:\n%s" msg
 
     let isFailedTestsException = exn :? UnitTestCommon.FailedTestsException
@@ -360,7 +360,7 @@ let private visitDependencies fVisit targetName =
         visited, ordered
 
     // First pass is to accumulate targets in (hard) dependency graph
-    let visited, _ = visit (fun t -> t.Dependencies |> withDependencyType DependencyType.Hard) (fun _ -> ()) targetName
+    let visited, _ = visit (fun t -> t.Dependencies |> withDependencyType DependencyType.Hard) ignore targetName
 
     let getAllDependencies (t: TargetTemplate<unit>) =
          (t.Dependencies |> withDependencyType DependencyType.Hard) @
@@ -401,7 +401,7 @@ let WriteErrors () =
     traceLine()
     errors
     |> Seq.mapi(fun i e -> sprintf "%3d) %s" (i + 1) e.Message)
-    |> Seq.iter(fun s -> traceError s)
+    |> Seq.iter traceError
 
 /// <summary>Writes a build time report.</summary>
 /// <param name="total">The total runtime.</param>
@@ -425,7 +425,7 @@ let WriteTaskTimeSummary total =
                 aligned t.Name time)
 
         aligned "Total:" total
-        if errors = [] then aligned "Status:" "Ok"
+        if List.isEmpty errors then aligned "Status:" "Ok"
         else
             alignedError "Status:" "Failure"
             WriteErrors()
@@ -446,7 +446,7 @@ let listTargets() =
     tracefn "Available targets:"
     TargetDict.Values
       |> Seq.iter (fun target ->
-            tracefn "  - %s %s" target.Name (if target.Description <> null then " - " + target.Description else "")
+            tracefn "  - %s %s" target.Name (if not <| isNull target.Description then " - " + target.Description else "")
             tracefn "     Depends on: %A" target.Dependencies)
 
 // Instead of the target can be used the list dependencies graph parameter.
@@ -473,8 +473,7 @@ let determineBuildOrder (target : string) =
         |> Seq.map (fun pair -> pair.Key, pair.Value)
         |> Seq.groupBy snd
         |> Seq.sortBy (fun (l,_) -> -l)
-        |> Seq.map snd
-        |> Seq.map (fun v -> v |> Seq.map fst |> Seq.distinct |> Seq.map getTarget |> Seq.toArray)
+        |> Seq.map (snd >> Seq.map fst >> Seq.distinct >> Seq.map getTarget >> Seq.toArray)
         |> Seq.toList
 
     // Note that this build order cannot be considered "optimal"
@@ -485,7 +484,7 @@ let determineBuildOrder (target : string) =
 /// Runs a single target without its dependencies
 let runSingleTarget (target : TargetTemplate<unit>) =
     try
-        if errors = [] then
+        if List.isEmpty errors then
             traceStartTarget target.Name target.Description (dependencyString target)
             let watch = new System.Diagnostics.Stopwatch()
             watch.Start()
@@ -508,7 +507,7 @@ let mutable CurrentTargetOrder = []
 /// Runs a target and its dependencies.
 let run targetName =
     if doesTargetMeanListTargets targetName then listTargets() else
-    if LastDescription <> null then failwithf "You set a task description (%A) but didn't specify a task." LastDescription
+    if not <| isNull LastDescription then failwithf "You set a task description (%A) but didn't specify a task." LastDescription
 
     let rec runTargets (targets: TargetTemplate<unit> array) =
         let lastTarget = targets |> Array.last
@@ -535,7 +534,7 @@ let run targetName =
 
             CurrentTargetOrder <-
                 order
-                |> List.map (fun targets -> targets |> Array.map (fun t -> t.Name) |> Array.toList)
+                |> List.map (Array.map (fun t -> t.Name) >> Array.toList)
 
             // run every level in parallel
             for par in order do
