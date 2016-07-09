@@ -80,19 +80,19 @@ let rec getAllScripts scriptPath : seq<Script> =
         IncludedAssemblies = lazy(getIncludedAssembly scriptContents) }
     Seq.concat [List.toSeq [s]; loadedContents]
 
-let getScriptHash pathsAndContents fsiOptions =
-    let fullContents = getAllScriptContents pathsAndContents |> String.concat "\n"
-    let fsiOptions = fsiOptions |> String.concat "\n"
-    let paths = pathsAndContents |> Seq.map(fun x -> x.Location |> normalizePath) |> String.concat "\n"
-    
+let getStringHash (s:string) =
     use sha256 = System.Security.Cryptography.SHA256.Create()
-    fullContents + paths + fsiOptions
+    s
     |> System.Text.Encoding.UTF8.GetBytes
     |> sha256.ComputeHash
     |> BitConverter.ToString
     |> fun s -> s.Replace("-", "")
-    //let hasher = HashLib.HashFactory.Checksum.CreateCRC32a()
-    //hasher.ComputeString(fullContents + paths + fsiOptions).ToString()
+
+let getScriptHash pathsAndContents fsiOptions =
+    (getAllScriptContents pathsAndContents |> String.concat "\n")
+    + (pathsAndContents |> Seq.map(fun x -> x.Location |> normalizePath) |> String.concat "\n")
+    + (fsiOptions |> String.concat "\n")
+    |> getStringHash
 
 type AssemblyInfo = {
     FullName : string
@@ -336,7 +336,7 @@ let private getCacheInfoFromScript (provider:ICachingProvider) printDetails fsiO
 #if NETSTANDARD1_5
     let loadContext = AssemblyLoadContext.Default
 #endif
-    let cacheValid =
+    let loadedAssemblies, knownAssemblies, cacheValid =
         let cacheFilesExistAndAreValid =
             File.Exists(assemblyPath) &&
             cacheConfig.IsSome &&
@@ -368,37 +368,38 @@ let private getCacheInfoFromScript (provider:ICachingProvider) printDetails fsiO
                 |> Seq.filter(fun (assemInfo, assem) ->
                     assem.GetName().Version.ToString() = assemInfo.Version)
                 |> Seq.length
-#if NETSTANDARD1_5
-            loadContext.add_Resolving(new Func<AssemblyLoadContext, AssemblyName, Assembly>(fun _ name ->
-                let strName = name.FullName
-#else
-            AppDomain.CurrentDomain.add_AssemblyResolve(new ResolveEventHandler(fun _ ev ->
-                let strName = ev.Name
-                let name = AssemblyName(strName)
-#endif
-                match knownAssemblies.TryGetValue(strName) with
-                | true, a ->
-                    if printDetails then tracefn "Redirect assembly load to known assembly: %s" strName
-                    Choice2Of2 a
-                | _ ->
-                    let token = name.GetPublicKeyToken()
-                    match loadedAssemblies
-                        |> Seq.map snd
-                        |> Seq.tryFind (fun asem ->
-                            let n = asem.GetName()
-                            n.Name = name.Name &&
-                            (isNull token || // When null accept what we have.
-                                n.GetPublicKeyToken() = token)) with
-                    | Some (asem) ->
-                        traceFAKE "Redirect assembly from '%s' to '%s'" strName asem.FullName
-                        Choice2Of2 asem
-                    | _ ->
-                        if printDetails then traceFAKE "Could not resolve '%s'" strName
-                        Choice1Of2 name
-                |> provider.ResolveAssembly))
-            assemVersionValidCount = Seq.length cacheConfig.Value
+            loadedAssemblies, knownAssemblies, assemVersionValidCount = Seq.length cacheConfig.Value
         else
-            false
+            [], dict [], false
+    
+#if NETSTANDARD1_5
+    loadContext.add_Resolving(new Func<AssemblyLoadContext, AssemblyName, Assembly>(fun _ name ->
+        let strName = name.FullName
+#else
+    AppDomain.CurrentDomain.add_AssemblyResolve(new ResolveEventHandler(fun _ ev ->
+        let strName = ev.Name
+        let name = AssemblyName(strName)
+#endif
+        match knownAssemblies.TryGetValue(strName) with
+        | true, a ->
+            if printDetails then tracefn "Redirect assembly load to known assembly: %s" strName
+            Choice2Of2 a
+        | _ ->
+            let token = name.GetPublicKeyToken()
+            match loadedAssemblies
+                |> Seq.map snd
+                |> Seq.tryFind (fun asem ->
+                    let n = asem.GetName()
+                    n.Name = name.Name &&
+                    (isNull token || // When null accept what we have.
+                        n.GetPublicKeyToken() = token)) with
+            | Some (asem) ->
+                traceFAKE "Redirect assembly from '%s' to '%s'" strName asem.FullName
+                Choice2Of2 asem
+            | _ ->
+                if printDetails then traceFAKE "Could not resolve '%s'" strName
+                Choice1Of2 name
+        |> provider.ResolveAssembly))
     if not cacheValid then provider.Invalidate(cacheConfigPath)
     { Provider = provider
       ScriptFileName = scriptFileName

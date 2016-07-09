@@ -111,24 +111,44 @@ let parseHeader scriptCacheDir (f : RawFakeSection) =
   *)
 
 
-let paketCachingProvider (paketDependencies:Paket.Dependencies) group =
+let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependencies) group =
   let groupStr = match group with Some g -> g | None -> "Main"
   let groupName = Paket.Domain.GroupName (groupStr)
   let framework = Paket.FrameworkIdentifier.DotNetStandard (Paket.DotNetStandardVersion.V1_6)
   let lockFilePath = Paket.DependenciesFile.FindLockfile paketDependencies.DependenciesFile
+  let parent s = Path.GetDirectoryName s
+  let comb name s = Path.Combine(s, name)
+  let paketDependenciesHashFile = cacheDir |> comb "paket.depedencies.sha1"
+  let saveDependenciesHash () =
+    File.WriteAllText (paketDependenciesHashFile, Fsi.getStringHash (File.ReadAllText paketDependencies.DependenciesFile))
   let restoreOrUpdate () =
-    Trace.log "Restoring with paket..."
-    if File.Exists lockFilePath.FullName then
-      // Restore only
-      paketDependencies.Restore(false, group, [], false, true)
-      |> ignore
-    else 
-      // Update
+    if printDetails then Trace.log "Restoring with paket..."
+    
+    // Check if lockfile is outdated
+    let hash = Fsi.getStringHash (File.ReadAllText paketDependencies.DependenciesFile)
+    if File.Exists lockFilePath.FullName && (not <| File.Exists paketDependenciesHashFile || File.ReadAllText paketDependenciesHashFile <> hash) then
+      Trace.log "paket lockfile is outdated..."
+      File.Delete lockFilePath.FullName
+
+    // Update
+    if not <| File.Exists lockFilePath.FullName then
       paketDependencies.UpdateGroup(groupStr, false, false, false, false, false, Paket.SemVerUpdateMode.NoRestriction, false)
       |> ignore
+      saveDependenciesHash ()
+
+    // Restore
+    paketDependencies.Restore(false, group, [], false, true)
+    |> ignore
     let lockFile = paketDependencies.GetLockFile()
     let lockGroup = lockFile.GetGroup groupName
     
+    // Write loadDependencies file (basically only for editor support)
+    let loadFile = Path.Combine (cacheDir, "loadDependencies.fsx")
+    if printDetails then Trace.log <| sprintf "Writing '%s'" loadFile
+    // TODO: Make sure to create #if !FAKE block, because we don't actually need it.
+    File.WriteAllText (loadFile, """printfn "loading dependencies... " """)
+    
+    // Retrieve assemblies
     lockGroup.Resolution
     |> Seq.map (fun kv -> 
       let packageName = kv.Key
@@ -145,42 +165,57 @@ let paketCachingProvider (paketDependencies:Paket.Dependencies) group =
           { Fake.Fsi.AssemblyInfo.FullName = assembly.Name.FullName
             Fake.Fsi.AssemblyInfo.Version = assembly.Name.Version.ToString()
             Fake.Fsi.AssemblyInfo.Location = fullName } |> Some
-      with e -> printfn "Could not load '%s': %O" fullName e; None)
+      with e -> (if printDetails then Trace.log <| sprintf "Could not load '%s': %O" fullName e); None)
     |> Seq.toList
   // Restore or update immediatly, because or everything might be OK -> cached path.
   let mutable assemblies = restoreOrUpdate()
   { new Fake.Fsi.ICachingProvider with
-      member x.Invalidate cachePath =
-        Trace.log "Invalidating cache..."
-        if File.Exists cachePath then File.Delete cachePath
-        // TODO: In future we want to take special care for external dependency files?
-        // They should have their own hash in cache
-        // BUG: lockfile only needs to be deleted when dependencies file changed, not even when the script changed!
-        if File.Exists lockFilePath.FullName then File.Delete lockFilePath.FullName
+      member x.Invalidate cacheFile =
+        if printDetails then Trace.log "Invalidating cache..."
+        if File.Exists cacheFile then File.Delete cacheFile
       member x.MapFsiOptions opts =
-          // Restore again -> cache invalid -> dependencies file might have changed.
-          assemblies <- restoreOrUpdate()
+          // Restore again -> cache might have been invalidated -> lock file might have changed.
+          //assemblies <- restoreOrUpdate()
           let options = Yaaf.FSharp.Scripting.FsiOptions.ofArgs opts
           let references = assemblies |> List.map (fun (a:Fake.Fsi.AssemblyInfo) -> a.Location)
           { options with
               NoFramework = true
+              Defines =  "FAKE" :: options.Defines
               Debug = Some Yaaf.FSharp.Scripting.DebugMode.Portable
               References = references @ options.References }
           |> fun options -> options.AsArgs
-      member x.TryLoadCache (cachePath) = Some assemblies
+      member x.TryLoadCache (cacheFile) = Some assemblies
       member x.ResolveAssembly a =
           match a with
           | Choice1Of2 name -> 
-            // Todo: resolve from 'assemblies'?
-            null
+            match assemblies
+                  |> Seq.tryFind (fun a -> a.FullName = name.FullName)
+                  |> Option.map (fun a -> a.Location) with
+            | Some loc ->
+#if NETSTANDARD1_6
+              try
+                let asem = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(loc)
+                Trace.traceFAKE "recovered and resolved '%s' via '%s'" name.FullName loc
+                asem
+              with :? FileLoadException as e ->
+                if printDetails then
+                  Trace.traceVerbose <| sprintf "Error while loading assembly: %O" e
+                let asem = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(name.Name))
+                if printDetails then
+                  Trace.traceFAKE "recovered and used already loaded assembly '%s' instead of '%s' ('%s')" asem.FullName name.FullName loc
+                asem
+#else
+              System.Reflection.Assembly.LoadFrom(loc)
+#endif
+            | None ->
+              null
           | Choice2Of2 a -> a
-      member x.TrySaveCache (cachePath) = true }
+      member x.TrySaveCache (cacheFile) = true }
 
-let restoreDependencies cacheDir section =
-  let loadFile = Path.Combine (cacheDir, "loadDependencies.fsx")
+let restoreDependencies printDetails cacheDir section =
   match section with
   | PaketDependencies (paketDependencies, group) ->
-    paketCachingProvider paketDependencies group
+    paketCachingProvider printDetails cacheDir paketDependencies group
     
 
 let prepareFakeScript printDetails script =
@@ -193,9 +228,9 @@ let prepareFakeScript printDetails script =
   match section with
   | Some s ->
     let section = parseHeader cacheDir s
-    restoreDependencies cacheDir section
+    restoreDependencies printDetails cacheDir section
   | None ->
-    Trace.traceFAKE "No dependencies section found in script: %s" script
+    if printDetails then Trace.traceFAKE "No dependencies section found in script: %s" script
     Fake.Fsi.Cache.defaultProvider
 
 let prepareAndRunScriptRedirect printDetails (Fsi.FsiArgs(fsiOptions, scriptPath, scriptArgs) as fsiArgs) envVars onErrMsg onOutMsg useCache =
