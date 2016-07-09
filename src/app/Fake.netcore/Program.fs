@@ -61,8 +61,9 @@ let splitCommandLine s =
   |> Seq.filter (System.String.IsNullOrEmpty >> not)
 
 
-let handleCli (results:ParseResult<Cli.FakeArgs>) =
+let handleCli (results:ParseResults<Cli.FakeArgs>) =
 
+  let mutable didSomething = false
   let mutable exitCode = 0
   let printDetails = results.Contains <@ Cli.FakeArgs.Verbose @>
 
@@ -72,8 +73,10 @@ let handleCli (results:ParseResult<Cli.FakeArgs>) =
   use consoleTrace = Paket.Logging.event.Publish |> Observable.subscribe Paket.Logging.traceToConsole
 
   if results.Contains <@ Cli.FakeArgs.Version @> then
+    didSomething <- true
     printVersion()
   results.IterResult (<@ Cli.FakeArgs.Run @>, fun runArgs ->
+    didSomething <- true
     if runArgs.Contains <@ Cli.RunArgs.Debug @> then
       Diagnostics.Debugger.Launch() |> ignore
       Diagnostics.Debugger.Break() |> ignore
@@ -169,6 +172,10 @@ let handleCli (results:ParseResult<Cli.FakeArgs>) =
     finally
       traceEndBuild()
   )
+
+  if not didSomething then
+    results.Raise ("Please specify what you want to do!", showUsage = true)
+
   exitCode
 
 [<EntryPoint>]
