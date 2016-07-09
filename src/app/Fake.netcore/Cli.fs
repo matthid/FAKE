@@ -7,18 +7,18 @@ open Argu
 
 
 type RunArgs =
-  | [<First>][<Mandatory>][<CliPrefix(CliPrefix.None)>][<AltCommandLine("")>] Script of string
+  | [<UniqueAttribute>][<GatherUnrecognized>] Script of string
   | [<AltCommandLine("-t")>] Target of string
   | [<AltCommandLine("-e")>] EnvironmentVariable of string * string
   | [<AltCommandLine("-d")>] Debug
   | [<AltCommandLine("-s")>] SingleTarget
   | [<AltCommandLine("-n")>] NoCache
-  | [<Rest>] FsiArgs of string
+  | FsiArgs of string
 with
   interface IArgParserTemplate with
     member s.Usage =
       match s with
-      | Script _ -> "Specify the script to run."
+      | Script _ -> "Specify the script to run. (--script is optional)"
       | EnvironmentVariable _ -> "Set an environment variable."
       | FsiArgs _ -> "Arguments passed to the f# interactive."
       | Debug _ -> "Debug the script (set a breakpoint at the start)."
@@ -29,7 +29,7 @@ with
 type FakeArgs =
   | Version
   | (*[<Inherit>]*) [<AltCommandLine("-v")>] Verbose
-  | [<CliPrefix(CliPrefix.None)>] Run of Argu.ParseResult<RunArgs>
+  | [<CliPrefix(CliPrefix.None)>] Run of Argu.ParseResults<RunArgs>
 with
   interface IArgParserTemplate with
     member s.Usage =
