@@ -1,10 +1,10 @@
 open System
-open Fake
-open Fake.Environment
-open Fake.String
-open Fake.Trace
-open Fake.BuildServer
-open Fake.Fsi
+open Fake.Runtime
+open Fake.Runtime.Environment
+open Fake.Runtime.String
+open Fake.Runtime.Trace
+open Fake.Runtime.BuildServer
+open Fake.Runtime.Fsi
 open System.IO
 open Argu
 
