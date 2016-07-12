@@ -1,6 +1,7 @@
 ﻿/// Contains code to configure FAKE for AppVeyor integration
 module Fake.AppVeyor
 
+open Fake
 open System.IO
 
 /// AppVeyor environment variables as [described](http://www.appveyor.com/docs/environment-variables)

@@ -1,8 +1,10 @@
-﻿module Fake.FakeRuntime
+﻿module Fake.Runtime.FakeRuntime
 
 open System
 open System.IO
-open Fake
+open Fake.Runtime
+
+#if DOTNETCORE
 
 (* Runtime will restore packages before running the script
 
@@ -162,14 +164,14 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
     |> Seq.choose (fun fi ->
       let fullName = fi.FullName
       try let assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly fullName
-          { Fake.Fsi.AssemblyInfo.FullName = assembly.Name.FullName
-            Fake.Fsi.AssemblyInfo.Version = assembly.Name.Version.ToString()
-            Fake.Fsi.AssemblyInfo.Location = fullName } |> Some
+          { Fsi.AssemblyInfo.FullName = assembly.Name.FullName
+            Fsi.AssemblyInfo.Version = assembly.Name.Version.ToString()
+            Fsi.AssemblyInfo.Location = fullName } |> Some
       with e -> (if printDetails then Trace.log <| sprintf "Could not load '%s': %O" fullName e); None)
     |> Seq.toList
   // Restore or update immediatly, because or everything might be OK -> cached path.
   let mutable assemblies = restoreOrUpdate()
-  { new Fake.Fsi.ICachingProvider with
+  { new Fsi.ICachingProvider with
       member x.Invalidate cacheFile =
         if printDetails then Trace.log "Invalidating cache..."
         if File.Exists cacheFile then File.Delete cacheFile
@@ -177,7 +179,7 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
           // Restore again -> cache might have been invalidated -> lock file might have changed.
           //assemblies <- restoreOrUpdate()
           let options = Yaaf.FSharp.Scripting.FsiOptions.ofArgs opts
-          let references = assemblies |> List.map (fun (a:Fake.Fsi.AssemblyInfo) -> a.Location)
+          let references = assemblies |> List.map (fun (a:Fsi.AssemblyInfo) -> a.Location)
           { options with
               NoFramework = true
               Defines =  "FAKE" :: options.Defines
@@ -231,11 +233,13 @@ let prepareFakeScript printDetails script =
     restoreDependencies printDetails cacheDir section
   | None ->
     if printDetails then Trace.traceFAKE "No dependencies section found in script: %s" script
-    Fake.Fsi.Cache.defaultProvider
+    Fsi.Cache.defaultProvider
 
 let prepareAndRunScriptRedirect printDetails (Fsi.FsiArgs(fsiOptions, scriptPath, scriptArgs) as fsiArgs) envVars onErrMsg onOutMsg useCache =
   let provider = prepareFakeScript printDetails scriptPath
   Fsi.runFakeWithCache provider printDetails fsiArgs envVars onErrMsg onOutMsg useCache
 
 let prepareAndRunScript printDetails fsiArgs envVars useCache =
-  prepareAndRunScriptRedirect printDetails fsiArgs envVars (Fake.Fsi.onMessage true) (Fake.Fsi.onMessage false) useCache
+  prepareAndRunScriptRedirect printDetails fsiArgs envVars (Fsi.onMessage true) (Fsi.onMessage false) useCache
+
+#endif

@@ -5,6 +5,7 @@
     "compilerName": "fsc",
     "define": [
       "CORE_CLR",
+      "DOTNETCORE",
       "EXPLICIT_DEPENDENCIES"
     ],
     "emitEntryPoint": false,
@@ -18,14 +19,13 @@
     ],
     "compile": {
       "includeFiles": [
-        "../FakeLib/AssemblyInfo.fs",
+        "AssemblyInfo.fs",
         "../../../paket-files/matthid/Yaaf.FSharp.Scripting/src/source/Yaaf.FSharp.Scripting/YaafFSharpScripting.fs",
-        "../FakeLib/EnvironmentHelper.fs",
-        "../FakeLib/StringHelper.fs",
-        "../FakeLib/BuildServerHelper.fs",
-        "../FakeLib/TraceListener.fs",
-        "../FakeLib/TraceHelper.fs",
-        "../FakeLib/FSIHelper.fs",
+        "Environment.fs",
+        "String.fs",
+        "BuildServer.fs",
+        "Trace.fs",
+        "Fsi.fs",
         "FakeRuntime.fs"
       ]
     }
