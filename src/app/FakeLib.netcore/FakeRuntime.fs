@@ -56,14 +56,14 @@ let readAllLines (r : TextReader) =
       yield line
       line <- r.ReadLine()
   }
-
+let private dependenciesFileName = "paket.dependencies"
 let parseHeader scriptCacheDir (f : RawFakeSection) =
   match f.Header with
   | "paket-inline" ->
-    let dependenciesFile = Path.Combine(scriptCacheDir, "paket.dependencies")
+    let dependenciesFile = Path.Combine(scriptCacheDir, dependenciesFileName)
     File.WriteAllText(dependenciesFile, f.Section)
     PaketDependencies (Paket.Dependencies(dependenciesFile), None)
-  | "paket.depedencies" ->
+  | "paket.dependencies" ->
     let groupStart = "group "
     let fileStart = "file "
     let readLine (l:string) : (string * string) option =
@@ -83,8 +83,8 @@ let parseHeader scriptCacheDir (f : RawFakeSection) =
     let file =
       match options.TryGetValue "file" with
       | true, depFile -> depFile
-      | _ -> "paket.dependencies"
-    PaketDependencies (Paket.Dependencies(file), group)
+      | _ -> dependenciesFileName
+    PaketDependencies (Paket.Dependencies(Path.GetFullPath file), group)
   | _ -> failwithf "unknown dependencies header '%s'" f.Header 
 
   (*
