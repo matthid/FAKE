@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "Argu": "3.0.0-beta02",
-    "FakeLib.netcore": "1.0.0-alpha4"
+    "Fake.Runtime": "1.0.0-alpha4"
   },
   "frameworks": {
     "net46": {
