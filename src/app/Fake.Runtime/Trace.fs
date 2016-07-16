@@ -1,14 +1,15 @@
 ﻿/// This module contains function which allow to trace build output
-module Fake.Runtime.Trace
+module internal Fake.Runtime.Trace
 open Fake.Runtime.Environment
-open Fake.Runtime.String
-open Fake.Runtime.BuildServer
 
 open System
 open System.IO
 open System.Reflection
 open System.Threading
 
+/// Defines if FAKE will use verbose tracing.
+/// This flag can be specified by setting the *verbose* build parameter.
+let mutable internal verbose = hasEnvironVar "verbose"
 
 /// Defines Tracing information for TraceListeners
 type TraceData = 
@@ -90,7 +91,7 @@ type ConsoleTraceListener(importantMessagesToStdErr, colorMap) =
             | FinishedMessage -> ()
 
 // If we write the stderr on those build servers the build will fail.
-let importantMessagesToStdErr = buildServer <> CCNet && buildServer <> AppVeyor && buildServer <> TeamCity
+let importantMessagesToStdErr = false
 
 /// The default TraceListener for Console.
 let defaultConsoleTraceListener =
@@ -115,9 +116,9 @@ type FAKEException(msg) =
 
 /// Gets the path of the current FAKE instance
 #if !CORE_CLR
-let fakePath = productName.GetType().Assembly.Location
+let fakePath = typeof<FAKEException>.Assembly.Location
 #else
-let fakePath = productName.GetType().GetTypeInfo().Assembly.Location
+let fakePath = typeof<FAKEException>.GetTypeInfo().Assembly.Location
 #endif
 
 /// Gets the FAKE version no.
@@ -203,15 +204,8 @@ let traceException (ex:Exception) = exceptionAndInnersToString ex |> traceError
 
 /// Traces the EnvironmentVariables
 let TraceEnvironmentVariables() = 
-#if !CORE_CLR
-    [ EnvironTarget.Machine; EnvironTarget.Process; EnvironTarget.User ] 
-    |> Seq.iter (fun mode -> 
-           tracefn "Environment-Settings (%A):" mode
-           environVars mode |> Seq.iter (tracefn "  %A"))
-#else
     tracefn "Environment-Settings (%A):" "Process"
     environVars () |> Seq.iter (tracefn "  %A")
-#endif
 
 /// Gets the FAKE Version string
 let fakeVersionStr = sprintf "FAKE - F# Make %A" fakeVersion
@@ -249,7 +243,7 @@ let traceStartTarget name description dependencyString =
     openTag "target"
     OpenTag("target", name) |> postMessage
     tracefn "Starting Target: %s %s" name dependencyString
-    if description <> null then tracefn "  %s" description
+    if isNull description |> not then tracefn "  %s" description
 
 /// Traces the end of a target   
 let traceEndTarget name = 

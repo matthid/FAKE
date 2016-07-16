@@ -49,17 +49,23 @@
     <Compile Include="..\Fake.Runtime\Environment.fs">
       <Link>Fake.Runtime/Environment.fs</Link>
     </Compile>
+    <Compile Include="..\Fake.Runtime\Path.fs">
+      <Link>Fake.Runtime/Path.fs</Link>
+    </Compile>
     <Compile Include="..\Fake.Runtime\String.fs">
       <Link>Fake.Runtime/String.fs</Link>
-    </Compile>
-    <Compile Include="..\Fake.Runtime\BuildServer.fs">
-      <Link>Fake.Runtime/BuildServer.fs</Link>
     </Compile>
     <Compile Include="..\Fake.Runtime\Trace.fs">
       <Link>Fake.Runtime/Trace.fs</Link>
     </Compile>
-    <Compile Include="..\Fake.Runtime\Fsi.fs">
-      <Link>Fake.Runtime/Fsi.fs</Link>
+    <Compile Include="..\Fake.Runtime\ScriptRunner.fs">
+      <Link>Fake.Runtime/ScriptRunner.fs</Link>
+    </Compile>
+    <Compile Include="..\Fake.Runtime\HashGeneration.fs">
+      <Link>Fake.Runtime/HashGeneration.fs</Link>
+    </Compile>
+    <Compile Include="..\Fake.Runtime\CoreCache.fs">
+      <Link>Fake.Runtime/CoreCache.fs</Link>
     </Compile>
     <Compile Include="..\Fake.Runtime\FakeRuntime.fs">
       <Link>Fake.Runtime/FakeRuntime.fs</Link>
