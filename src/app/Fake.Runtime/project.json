@@ -19,13 +19,16 @@
     ],
     "compile": {
       "includeFiles": [
-        "AssemblyInfo.fs",
         "../../../paket-files/matthid/Yaaf.FSharp.Scripting/src/source/Yaaf.FSharp.Scripting/YaafFSharpScripting.fs",
+        "AssemblyInfo.fs",
+        "LegacyApiHelper.fs",
         "Environment.fs",
+        "Path.fs",
         "String.fs",
-        "BuildServer.fs",
         "Trace.fs",
-        "Fsi.fs",
+        "ScriptRunner.fs",
+        "HashGeneration.fs",
+        "CoreCache.fs",
         "FakeRuntime.fs"
       ]
     }
