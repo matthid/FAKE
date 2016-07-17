@@ -73,6 +73,7 @@ let private handleCoreCaching (context:FakeContext) (session:IFsiSession) fsiErr
         let d = session.DynamicAssemblyBuilder
         let name = fsiAssemblyName
 #if NETSTANDARD1_6
+        ignore d
         failwith "Wow. Dotnetcore currently doesn't support saving dynamic assemblies. See https://github.com/dotnet/coreclr/issues/1709, https://github.com/dotnet/corefx/issues/4491. As it only hits F# it will probably never be implemented ;). One way to solve this would be to use IKVM.Reflection or Mono.Cecil in FSharp.Compiler.Service. But that's probably a lot of work. Feel free to start :). For now Caching cannot work."
 #else
         d.Save(name + ".dll")
@@ -177,7 +178,7 @@ let nameParser scriptFileName =
 
 let tryRunCached (c:CoreCacheInfo) (context:FakeContext) : Exception option =
     if context.Config.PrintDetails then trace "Using cache"
-    let exampleName, fullName, parseName = nameParser context.Config.ScriptFilePath
+    let exampleName, _, parseName = nameParser context.Config.ScriptFilePath
     
     Yaaf.FSharp.Scripting.Helper.consoleCapture context.Config.Out context.Config.Err (fun () ->
 #if NETSTANDARD1_5

@@ -1,13 +1,8 @@
 ﻿/// Contains basic functions for string manipulation.
-#if CORE_CLR
-module Fake.String
-type String = System.String
-open Fake.Environment
-#else
 [<AutoOpen>]
+[<System.Obsolete("use Fake.Core.String module instead. Do not use `open Fake` anymore!")>]
 /// Contains basic functions for string manipulation.
 module Fake.StringHelper
-#endif
 open System
 open System.IO
 open System.Text

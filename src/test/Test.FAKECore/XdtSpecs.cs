@@ -6,6 +6,7 @@ using System.Text;
 using Fake;
 using Machine.Specifications;
 using Microsoft.FSharp.Collections;
+using FileSystem = Fake.FileSystemModule;
 
 namespace Test.FAKECore.XDTHandling
 {

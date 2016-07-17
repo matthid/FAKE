@@ -1,5 +1,6 @@
 /// This module contains a file pattern globbing implementation.
 [<AutoOpen>]
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>] // Because of Fake.FileSystem (new dotnetcore api)
 module Fake.FileSystem
 
 open System

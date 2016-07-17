@@ -316,6 +316,46 @@ Target "CreateNuGet" (fun _ ->
         NuGet (setParams >> x64ify) "fake.nuspec"
 )
 
+#load "src/app/Fake.Dotnet/Dotnet.fs"
+open Fake.Dotnet
+
+Target "InstallDotnetCore" (fun _ ->
+    DotnetCliInstall id
+)
+
+Target "DotnetRestore" (fun _ ->
+      // dotnet restore
+      !! "src/app/*/project.json"
+      |> Seq.iter(fun proj ->
+          DotnetRestore id proj
+      )
+)
+Target "DotnetBuild" (fun _ ->
+      // dotnet pack
+      !! "src/app/*/project.json"
+      -- "src/app/Fake.netcore/project.json"
+      |> Seq.iter(fun proj ->
+          DotnetPack (fun c ->
+              { c with
+                  Configuration = Debug;
+                  OutputPath = Some (nugetDir @@ "dotnetcore")
+              }) proj
+      )
+      // dotnet publish
+      [ "win7-x86"; "win7-x64"; "osx.10.11-x64"; "ubuntu.14.04-x64" ]
+      |> Seq.iter (fun runtime ->
+            !! "src/app/Fake.netcore/project.json"
+            |> Seq.iter(fun proj ->
+                let projName = Path.GetFileName(Path.GetDirectoryName proj)
+                DotnetPublish (fun c ->
+                    { c with
+                        Runtime = Some runtime
+                        OutputPath = Some (nugetDir @@ "dotnetcore" @@ projName @@ runtime) 
+                    }) proj
+            )
+      )
+)
+
 Target "PublishNuget" (fun _ ->
     Paket.Push(fun p -> 
         { p with
@@ -362,6 +402,9 @@ Target "Default" DoNothing
     ==> "RenameFSharpCompilerService"
     ==> "SetAssemblyInfo"
     ==> "BuildSolution"
+    =?> ("InstallDotnetCore", not isLinux)
+    =?> ("DotnetRestore", not isLinux)
+    =?> ("DotnetBuild", not isLinux)
     //==> "ILRepack"
     ==> "Test"
     ==> "Bootstrap"

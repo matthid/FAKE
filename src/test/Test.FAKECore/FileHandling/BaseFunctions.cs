@@ -5,6 +5,7 @@ using System.Linq;
 using Fake;
 using Machine.Specifications;
 using Microsoft.FSharp.Core;
+using FileSystem = Fake.FileSystemModule;
 
 namespace Test.FAKECore.FileHandling
 {

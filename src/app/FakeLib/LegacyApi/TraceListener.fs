@@ -1,12 +1,7 @@
 ﻿/// Defines default listeners for build output traces
-#if CORE_CLR
-module Fake.TraceListener
-open Fake.BuildServer
-open Fake.Environment
-#else
 [<AutoOpen>]
+[<System.Obsolete("use Fake.Core.Targets module instead. Do not use `open Fake` anymore!")>]
 module Fake.TraceListener
-#endif
 
 open System
 

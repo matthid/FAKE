@@ -1,4 +1,5 @@
 ﻿[<AutoOpen>]
+[<System.Obsolete("use Fake.Core.Target module instead. Do not use `open Fake` anymore!")>]
 /// Contains infrastructure code and helper functions for FAKE's target feature.
 module Fake.TargetHelper
 

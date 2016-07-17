@@ -88,8 +88,6 @@ let fakePath = typeof<FAKEException>.Assembly.Location
 let fakePath = typeof<FAKEException>.GetTypeInfo().Assembly.Location
 #endif
 
-/// Gets the FAKE version no.
-let fakeVersion = AssemblyVersionInformation.Version
 
 /// Logs the specified string        
 let log message = LogMessage(message, true) |> postMessage

@@ -4,16 +4,15 @@
     "debugType": "portable",
     "compilerName": "fsc",
     "define": [
-      "CORE_CLR",
-      "EXPLICIT_DEPENDENCIES"
+      "DOTNETCORE"
     ],
     "emitEntryPoint": false,
     "xmlDoc": true,
     "compile": {
       "includeFiles": [
-        "../FakeLib/AssemblyInfo.fs",
-        "../FakeLib/TargetHelper.fs",
-        "../FakeLib/AdditionalSyntax.fs"
+        "AssemblyInfo.fs",
+        "TraceListener.fs",
+        "Trace.fs"
       ]
     }
   },
@@ -24,9 +23,11 @@
     }
   },
   "dependencies": {
-    "FakeLib.netcore": "1.0.0-alpha4"
+    "Fake.Core.Environment": "1.0.0-alpha1",
+    "Fake.Core.String": "1.0.0-alpha1",
+    "Fake.Core.BuildServer": "1.0.0-alpha1"
   },
-  "frameworks": {
+  "disabled_frameworks": {
     "net46": {
       "dependencies": {
         "FSharp.Core": "4.0.0.1",
@@ -43,7 +44,9 @@
         "System.Xml.Linq": "",
         "System.Core": ""
       }
-    },
+    }
+  },
+  "frameworks": {
     "netstandard1.6": {
       "buildOptions": {
         "define": [
