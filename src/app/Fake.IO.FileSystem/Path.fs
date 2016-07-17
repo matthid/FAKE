@@ -1,5 +1,5 @@
 ﻿/// Contains helper function which allow to deal with files and directories.
-module Fake.FileSystem.Path
+module Fake.IO.FileSystem.Path
 
 open Fake.Core
 open Fake.Core.String.Operators

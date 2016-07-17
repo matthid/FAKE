@@ -1,5 +1,5 @@
 ﻿/// Contains helpers which allow to interact with the file system.
-namespace Fake.FileSystem
+namespace Fake.IO.FileSystem
 
 open System.Text
 open System.IO

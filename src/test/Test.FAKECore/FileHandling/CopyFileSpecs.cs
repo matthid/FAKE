@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using Fake;
 using Machine.Specifications;
-using FileSystem = Fake.FileSystemModule;
 
 namespace Test.FAKECore.FileHandling
 {

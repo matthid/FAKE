@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "Argu": "3.0.0-beta02",
-    "Fake.Runtime": "1.0.0-alpha4"
+    "Fake.Runtime": "1.0.0-alpha1"
   },
   "disabled_frameworks": {
     "net46": {
