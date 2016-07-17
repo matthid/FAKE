@@ -1,5 +1,5 @@
 ﻿/// This module contains function which allow to trace build output
-module internal Fake.Runtime.Trace
+module Fake.Runtime.Trace
 open Fake.Runtime.Environment
 
 open System
@@ -7,40 +7,24 @@ open System.IO
 open System.Reflection
 open System.Threading
 
-/// Defines if FAKE will use verbose tracing.
-/// This flag can be specified by setting the *verbose* build parameter.
-let mutable internal verbose = hasEnvironVar "verbose"
-
 /// Defines Tracing information for TraceListeners
-type TraceData = 
-    | StartMessage
+type TraceData =
     | ImportantMessage of string
     | ErrorMessage of string
     | LogMessage of string * bool
     | TraceMessage of string * bool
-    | FinishedMessage
-    | OpenTag of string * string
-    | CloseTag of string
     member x.NewLine =
         match x with
         | ImportantMessage _
         | ErrorMessage _ -> Some true
         | LogMessage (_, newLine)
         | TraceMessage (_, newLine) -> Some newLine
-        | StartMessage
-        | FinishedMessage
-        | OpenTag _
-        | CloseTag _ -> None
     member x.Message =
         match x with
         | ImportantMessage text
         | ErrorMessage text
         | LogMessage (text, _)
         | TraceMessage (text, _) -> Some text
-        | StartMessage
-        | FinishedMessage
-        | OpenTag _
-        | CloseTag _ -> None
 
 /// Defines a TraceListener interface
 type ITraceListener = 
@@ -53,25 +37,20 @@ let colorMap traceData =
     | ErrorMessage _ -> ConsoleColor.Red
     | LogMessage _ -> ConsoleColor.Gray
     | TraceMessage _ -> ConsoleColor.Green
-    | FinishedMessage -> ConsoleColor.White
-    | _ -> ConsoleColor.Gray
 
 /// Implements a TraceListener for System.Console.
 /// ## Parameters
 ///  - `importantMessagesToStdErr` - Defines whether to trace important messages to StdErr.
 ///  - `colorMap` - A function which maps TracePriorities to ConsoleColors.
-type ConsoleTraceListener(importantMessagesToStdErr, colorMap) = 
-    
-    let writeText toStdErr color newLine text = 
+type ConsoleTraceListener(colorMap) =
+    let writeText color newLine text = 
         let curColor = Console.ForegroundColor
         try
           if curColor <> color then Console.ForegroundColor <- color
           let printer =
-            match toStdErr, newLine with
-            | true, true -> eprintfn
-            | true, false -> eprintf
-            | false, true -> printfn
-            | false, false -> printf
+            match newLine with
+            | true -> printfn
+            | false -> printf
           printer "%s" text
         finally
           if curColor <> color then Console.ForegroundColor <- curColor
@@ -81,24 +60,14 @@ type ConsoleTraceListener(importantMessagesToStdErr, colorMap) =
         member this.Write msg = 
             let color = colorMap msg
             match msg with
-            | StartMessage -> ()
-            | OpenTag _ -> ()
-            | CloseTag _ -> ()
             | ImportantMessage text | ErrorMessage text ->
-                writeText importantMessagesToStdErr color true text
+                writeText color true text
             | LogMessage(text, newLine) | TraceMessage(text, newLine) ->
-                writeText false color newLine text
-            | FinishedMessage -> ()
-
-// If we write the stderr on those build servers the build will fail.
-let importantMessagesToStdErr = false
+                writeText color newLine text
 
 /// The default TraceListener for Console.
 let defaultConsoleTraceListener =
-  ConsoleTraceListener(importantMessagesToStdErr, colorMap)
-
-/// Specifies if the XmlWriter should close tags automatically
-let mutable AutoCloseXmlWriter = false
+  ConsoleTraceListener(colorMap)
 
 /// A List with all registered listeners
 let listeners = new Collections.Generic.List<ITraceListener>()
@@ -108,8 +77,6 @@ listeners.Add defaultConsoleTraceListener
 
 /// Allows to post messages to all trace listeners
 let postMessage x = listeners.ForEach(fun listener -> listener.Write x)
-
-
 
 type FAKEException(msg) =
     inherit System.Exception(msg)
@@ -124,21 +91,8 @@ let fakePath = typeof<FAKEException>.GetTypeInfo().Assembly.Location
 /// Gets the FAKE version no.
 let fakeVersion = AssemblyVersionInformation.Version
 
-let private openTags = new ThreadLocal<list<string>>(fun _ -> [])
-
 /// Logs the specified string        
 let log message = LogMessage(message, true) |> postMessage
-
-/// Logs the specified message
-let logfn fmt = Printf.ksprintf log fmt
-
-/// Logs the specified message (without line break)
-let logf fmt = Printf.ksprintf (fun text -> postMessage (LogMessage(text, false))) fmt
-
-/// Logs the specified string if the verbose mode is activated.
-let logVerbosefn fmt = 
-    Printf.ksprintf (if verbose then log
-                     else ignore) fmt
 
 /// Writes a trace to the command line (in green)
 let trace message = postMessage (TraceMessage(message, true))
@@ -149,137 +103,10 @@ let tracefn fmt = Printf.ksprintf trace fmt
 /// Writes a message to the command line (in green) and without a line break
 let tracef fmt = Printf.ksprintf (fun text -> postMessage (TraceMessage(text, false))) fmt
 
-/// Writes a trace to the command line (in green) if the verbose mode is activated.
-let traceVerbose s = 
-    if verbose then trace s
-
-/// Writes a trace to stderr (in yellow)  
-let traceImportant text = postMessage (ImportantMessage text)
-
 /// Writes a trace to the command line (in yellow)
 let traceFAKE fmt = Printf.ksprintf (fun text -> postMessage (ImportantMessage text)) fmt
 
 /// Traces an error (in red)
 let traceError error = postMessage (ErrorMessage error)
-
-open Microsoft.FSharp.Core.Printf
-
-/// Converts an exception and its inner exceptions to a nice string.
-let exceptionAndInnersToString (ex:Exception) =
-    let sb = Text.StringBuilder()
-    let delimeter = String.replicate 50 "*"
-    let nl = Environment.NewLine
-    let rec printException (e:Exception) count =
-        if (e :? TargetException && e.InnerException <> null)
-        then printException (e.InnerException) count
-        else
-            if (count = 1) then bprintf sb "Exception Message:%s%s%s" e.Message nl delimeter
-            else bprintf sb "%s%s%d)Exception Message:%s%s%s" nl nl count e.Message nl delimeter
-            bprintf sb "%sType: %s" nl (e.GetType().FullName)
-            // Loop through the public properties of the exception object
-            // and record their values.
-            e.GetType().GetProperties()
-            |> Array.iter (fun p ->
-                // Do not log information for the InnerException or StackTrace.
-                // This information is captured later in the process.
-                if (p.Name <> "InnerException" && p.Name <> "StackTrace" &&
-                    p.Name <> "Message" && p.Name <> "Data") then
-                    try
-                        let value = p.GetValue(e, null)
-                        if (value <> null)
-                        then bprintf sb "%s%s: %s" nl p.Name (value.ToString())
-                    with
-                    | e2 -> bprintf sb "%s%s: %s" nl p.Name e2.Message
-            )
-            if (e.StackTrace <> null) then
-                bprintf sb "%s%sStackTrace%s%s%s" nl nl nl delimeter nl
-                bprintf sb "%s%s" nl e.StackTrace
-            if (e.InnerException <> null)
-            then printException e.InnerException (count+1)
-    printException ex 1
-    sb.ToString()
-
-/// Traces an exception details (in red)
-let traceException (ex:Exception) = exceptionAndInnersToString ex |> traceError
-
-/// Traces the EnvironmentVariables
-let TraceEnvironmentVariables() = 
-    tracefn "Environment-Settings (%A):" "Process"
-    environVars () |> Seq.iter (tracefn "  %A")
-
-/// Gets the FAKE Version string
-let fakeVersionStr = sprintf "FAKE - F# Make %A" fakeVersion
-
-/// Traces a line
-let traceLine() = trace "---------------------------------------------------------------------"
-
-/// Traces a header
-let traceHeader name = 
-    trace ""
-    traceLine()
-    trace name
-    traceLine()
-
-/// Traces the begin of the build
-let traceStartBuild() = postMessage StartMessage
-
-/// Traces the end of the build
-let traceEndBuild() = postMessage FinishedMessage
-
-/// Puts an opening tag on the internal tag stack
-let openTag tag = openTags.Value <- tag :: openTags.Value
-
-/// Removes an opening tag from the internal tag stack
-let closeTag tag = 
-    match openTags.Value with
-    | x :: rest when x = tag -> openTags.Value <- rest
-    | _ -> failwithf "Invalid tag structure. Trying to close %s tag but stack is %A" tag openTags
-    CloseTag tag |> postMessage
-
-let closeAllOpenTags() = Seq.iter closeTag openTags.Value
-
-/// Traces the begin of a target
-let traceStartTarget name description dependencyString =
-    openTag "target"
-    OpenTag("target", name) |> postMessage
-    tracefn "Starting Target: %s %s" name dependencyString
-    if isNull description |> not then tracefn "  %s" description
-
-/// Traces the end of a target   
-let traceEndTarget name = 
-    tracefn "Finished Target: %s" name
-    closeTag "target"
-
-/// Traces the begin of a task
-let traceStartTask task description = 
-    openTag "task"
-    OpenTag("task", task) |> postMessage
-
-/// Traces the end of a task
-let traceEndTask task description = 
-    closeTag "task"
-
-let console = new ConsoleTraceListener(false, colorMap) :> ITraceListener
-
-open System.Diagnostics
-#if CORE_CLR
-type EventLogEntryType =
-  | Error
-  | Information
-  | Warning
-  | Other
-#endif
-/// Traces the message to the console
-let logToConsole (msg, eventLogEntry : EventLogEntryType) = 
-    match eventLogEntry with
-    | EventLogEntryType.Error -> ErrorMessage msg
-    | EventLogEntryType.Information -> TraceMessage(msg, true)
-    | EventLogEntryType.Warning -> ImportantMessage msg
-    | _ -> LogMessage(msg, true)
-    |> console.Write
-
-/// Logs the given files with the message.
-let Log message files = files |> Seq.iter (log << sprintf "%s%s" message)
-
 
 

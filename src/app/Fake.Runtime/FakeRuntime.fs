@@ -6,30 +6,6 @@ open Fake.Runtime
 
 #if DOTNETCORE
 
-(* Runtime will restore packages before running the script
-
-A script must start with
-
-(* -- Fake Dependencies paket-inline
-source http://nuget.org/api/v2
-
-nuget Fake.Travis
-nuget Fake.MsBuild
-nuget FSharp.Formatting ~> 2.14
--- Fake Dependencies -- *)
-#load "./.fake/build.fsx/loadDependencies.fsx"
-
-
-This way the file can still be edited in editors (after restoring packages initially).
-It's possible to use an existing file:
-
-(* -- Fake Dependencies paket.dependencies
-file ./paket.dependencies
-group Build
--- Fake Dependencies -- *)
-#load "./.fake/build.fsx/loadDependencies.fsx"
-
-*)
 type RawFakeSection =
   { Header : string
     Section : string }
@@ -122,12 +98,12 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
   let comb name s = Path.Combine(s, name)
   let paketDependenciesHashFile = cacheDir |> comb "paket.depedencies.sha1"
   let saveDependenciesHash () =
-    File.WriteAllText (paketDependenciesHashFile, Fsi.getStringHash (File.ReadAllText paketDependencies.DependenciesFile))
+    File.WriteAllText (paketDependenciesHashFile, HashGeneration.getStringHash (File.ReadAllText paketDependencies.DependenciesFile))
   let restoreOrUpdate () =
     if printDetails then Trace.log "Restoring with paket..."
     
     // Check if lockfile is outdated
-    let hash = Fsi.getStringHash (File.ReadAllText paketDependencies.DependenciesFile)
+    let hash = HashGeneration.getStringHash (File.ReadAllText paketDependencies.DependenciesFile)
     if File.Exists lockFilePath.FullName && (not <| File.Exists paketDependenciesHashFile || File.ReadAllText paketDependenciesHashFile <> hash) then
       Trace.log "paket lockfile is outdated..."
       File.Delete lockFilePath.FullName
@@ -164,55 +140,41 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
     |> Seq.choose (fun fi ->
       let fullName = fi.FullName
       try let assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly fullName
-          { Fsi.AssemblyInfo.FullName = assembly.Name.FullName
-            Fsi.AssemblyInfo.Version = assembly.Name.Version.ToString()
-            Fsi.AssemblyInfo.Location = fullName } |> Some
+          { ScriptRunner.AssemblyInfo.FullName = assembly.Name.FullName
+            ScriptRunner.AssemblyInfo.Version = assembly.Name.Version.ToString()
+            ScriptRunner.AssemblyInfo.Location = fullName } |> Some
       with e -> (if printDetails then Trace.log <| sprintf "Could not load '%s': %O" fullName e); None)
     |> Seq.toList
   // Restore or update immediatly, because or everything might be OK -> cached path.
-  let mutable assemblies = restoreOrUpdate()
-  { new Fsi.ICachingProvider with
-      member x.Invalidate cacheFile =
+  let mutable compileAssemblies = restoreOrUpdate()
+  { new CoreCache.ICachingProvider with
+      member x.CleanCache context =
         if printDetails then Trace.log "Invalidating cache..."
-        if File.Exists cacheFile then File.Delete cacheFile
-      member x.MapFsiOptions opts =
-          // Restore again -> cache might have been invalidated -> lock file might have changed.
-          //assemblies <- restoreOrUpdate()
-          let options = Yaaf.FSharp.Scripting.FsiOptions.ofArgs opts
-          let references = assemblies |> List.map (fun (a:Fsi.AssemblyInfo) -> a.Location)
-          { options with
-              NoFramework = true
-              Defines =  "FAKE" :: options.Defines
-              Debug = Some Yaaf.FSharp.Scripting.DebugMode.Portable
-              References = references @ options.References }
-          |> fun options -> options.AsArgs
-      member x.TryLoadCache (cacheFile) = Some assemblies
-      member x.ResolveAssembly a =
-          match a with
-          | Choice1Of2 name -> 
-            match assemblies
-                  |> Seq.tryFind (fun a -> a.FullName = name.FullName)
-                  |> Option.map (fun a -> a.Location) with
-            | Some loc ->
-#if NETSTANDARD1_6
-              try
-                let asem = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(loc)
-                Trace.traceFAKE "recovered and resolved '%s' via '%s'" name.FullName loc
-                asem
-              with :? FileLoadException as e ->
-                if printDetails then
-                  Trace.traceVerbose <| sprintf "Error while loading assembly: %O" e
-                let asem = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(name.Name))
-                if printDetails then
-                  Trace.traceFAKE "recovered and used already loaded assembly '%s' instead of '%s' ('%s')" asem.FullName name.FullName loc
-                asem
-#else
-              System.Reflection.Assembly.LoadFrom(loc)
-#endif
-            | None ->
-              null
-          | Choice2Of2 a -> a
-      member x.TrySaveCache (cacheFile) = true }
+      member __.TryLoadCache (context) =
+          let references = compileAssemblies |> List.map (fun (a:ScriptRunner.AssemblyInfo) -> a.Location)
+          let fsiOpts = context.Config.CompileOptions.AdditionalArguments |> Yaaf.FSharp.Scripting.FsiOptions.ofArgs
+          let newAdditionalArgs =
+              { fsiOpts with
+                  NoFramework = true
+                  Defines =  "FAKE" :: fsiOpts.Defines
+                  Debug = Some Yaaf.FSharp.Scripting.DebugMode.Portable }
+              |> (fun options -> options.AsArgs)
+              |> Seq.toList
+          { context with
+              Config =
+                { context.Config with
+                    CompileOptions =
+                      { context.Config.CompileOptions with
+                          AdditionalArguments = newAdditionalArgs
+                          // TODO: Bug, Use runtime assemblies instead!
+                          RuntimeDependencies = compileAssemblies @ context.Config.CompileOptions.RuntimeDependencies
+                          CompileReferences = references @ context.Config.CompileOptions.CompileReferences
+                      }
+                }
+          },
+          None
+          //Some { CompiledAssembly = cachedDll; Warnings = warningText }
+      member x.SaveCache (context, cache) = () }
 
 let restoreDependencies printDetails cacheDir section =
   match section with
@@ -233,13 +195,26 @@ let prepareFakeScript printDetails script =
     restoreDependencies printDetails cacheDir section
   | None ->
     if printDetails then Trace.traceFAKE "No dependencies section found in script: %s" script
-    Fsi.Cache.defaultProvider
+    CoreCache.Cache.defaultProvider
 
-let prepareAndRunScriptRedirect printDetails (Fsi.FsiArgs(fsiOptions, scriptPath, scriptArgs) as fsiArgs) envVars onErrMsg onOutMsg useCache =
+let prepareAndRunScriptRedirect printDetails fsiOptions scriptPath envVars onErrMsg onOutMsg useCache =
   let provider = prepareFakeScript printDetails scriptPath
-  Fsi.runFakeWithCache provider printDetails fsiArgs envVars onErrMsg onOutMsg useCache
+  use out = Yaaf.FSharp.Scripting.ScriptHost.CreateForwardWriter onOutMsg
+  use err = Yaaf.FSharp.Scripting.ScriptHost.CreateForwardWriter onErrMsg
+  let config =
+    { ScriptRunner.FakeConfig.PrintDetails = printDetails
+      ScriptRunner.FakeConfig.ScriptFilePath = scriptPath
+      ScriptRunner.FakeConfig.CompileOptions = 
+        { CompileReferences = []
+          RuntimeDependencies = []
+          AdditionalArguments = fsiOptions }
+      ScriptRunner.FakeConfig.UseCache = useCache
+      ScriptRunner.FakeConfig.Out = out
+      ScriptRunner.FakeConfig.Err = err
+      ScriptRunner.FakeConfig.Environment = envVars }
+  CoreCache.runScriptWithCacheProvider config provider
 
-let prepareAndRunScript printDetails fsiArgs envVars useCache =
-  prepareAndRunScriptRedirect printDetails fsiArgs envVars (Fsi.onMessage true) (Fsi.onMessage false) useCache
+let prepareAndRunScript printDetails fsiOptions scriptPath envVars useCache =
+  prepareAndRunScriptRedirect printDetails fsiOptions scriptPath envVars (printf "%s") (printf "%s") useCache
 
 #endif

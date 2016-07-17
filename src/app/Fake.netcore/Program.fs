@@ -3,8 +3,10 @@ open Fake.Runtime
 open Fake.Runtime.Environment
 open Fake.Runtime.String
 open Fake.Runtime.Trace
-open Fake.Runtime.BuildServer
-open Fake.Runtime.Fsi
+open Fake.Runtime.ScriptRunner
+open Fake.Runtime.HashGeneration
+open Fake.Runtime.CoreCache
+open Fake.Runtime.FakeRuntime
 open System.IO
 open Argu
 
@@ -16,11 +18,6 @@ let printVersion() =
 let printEnvironment cmdArgs args =
     printVersion()
 
-    if buildServer = LocalBuild then
-        trace localBuildLabel
-    else
-        tracefn "Build-Version: %s" buildVersion
-
     if cmdArgs |> Array.length > 1 then
         traceFAKE "FAKE Arguments:"
         args 
@@ -31,11 +28,11 @@ let printEnvironment cmdArgs args =
     //traceFAKE "FSI-Path: %s" fsiPath
     //traceFAKE "MSBuild-Path: %s" msBuildExe
 
-let containsParam param = Seq.map toLower >> Seq.exists ((=) (toLower param))
+let containsParam (param:string) = Seq.map (fun (s:string) -> s.ToLower()) >> Seq.exists ((=) (param.ToLower()))
 
 let paramIsHelp param = containsParam param ["help"; "?"; "/?"; "-h"; "--help"; "/h"; "/help"]
 
-let buildScripts = System.IO.Directory.EnumerateFiles(getCurrentDirectory(), "*.fsx") |> Seq.toList
+let buildScripts = System.IO.Directory.EnumerateFiles(System.IO.Directory.GetCurrentDirectory(), "*.fsx") |> Seq.toList
 
 // http://stackoverflow.com/questions/298830/split-string-containing-command-line-parameters-into-string-in-c-sharp/298990#298990
 let splitBy f (s:string) =
@@ -82,95 +79,97 @@ let handleCli (results:ParseResults<Cli.FakeArgs>) =
       Diagnostics.Debugger.Break() |> ignore
 
     try
-      try
-        //AutoCloseXmlWriter <- true
-        //let cmdArgs = System.Environment.GetCommandLineArgs()
-        //match isBoot with
-        ////Boot.
-        //| true ->
-        //    let handler = Boot.HandlerForArgs bootArgs//Could be List.empty, but let Boot handle this.
-        //    handler.Interact()
-        //
-        ////Try and run a build script! 
-        //| false ->
+      //AutoCloseXmlWriter <- true
+      //let cmdArgs = System.Environment.GetCommandLineArgs()
+      //match isBoot with
+      ////Boot.
+      //| true ->
+      //    let handler = Boot.HandlerForArgs bootArgs//Could be List.empty, but let Boot handle this.
+      //    handler.Interact()
+      //
+      ////Try and run a build script! 
+      //| false ->
 
-        traceStartBuild()
-        if printDetails then printVersion()
+      if printDetails then printVersion()
 
-        //Maybe log.
-        //match fakeArgs.TryGetResult <@ Cli.LogFile @> with
-        //| Some(path) -> addXmlListener path
-        //| None -> ()
+      //Maybe log.
+      //match fakeArgs.TryGetResult <@ Cli.LogFile @> with
+      //| Some(path) -> addXmlListener path
+      //| None -> ()
 
-        //Combine the key value pair vars and the flag vars.
-        let envVars =
-            seq {
-              yield! 
-                runArgs.GetResults(<@ Cli.RunArgs.EnvironmentVariable @>)
-                //|> Seq.map (fun s -> let split = s.Split(':') in split.[0], split.[1])
-              if runArgs.Contains <@ Cli.RunArgs.SingleTarget @> then yield "single-target", "true"
-              if runArgs.Contains <@ Cli.RunArgs.Target @> then yield "target", runArgs.GetResult <@ Cli.RunArgs.Target @>
-            }
-            //seq { yield! fakeArgs.GetResults <@ Cli.EnvFlag @> |> Seq.map (fun name -> name, "true")
-            //      yield! fakeArgs.GetResults <@ Cli.EnvVar @>
-            //      if fakeArgs.Contains <@ Cli.Single_Target @> then yield "single-target", "true"
-            //      if args.Target.IsSome then yield "target", args.Target.Value }
+      //Get our fsiargs from somewhere!
+      let fsiArgLine = if runArgs.Contains <@ Cli.RunArgs.FsiArgs @> then runArgs.GetResult <@ Cli.RunArgs.FsiArgs @> else ""
+      let s = if runArgs.Contains <@ Cli.RunArgs.Script @> then Some (runArgs.GetResult <@ Cli.RunArgs.Script @>)  else None
+      let additionalArgs, scriptFile, scriptArgs = 
+          match
+              splitCommandLine fsiArgLine |> Seq.toList,
+              s,
+              List.isEmpty buildScripts with
 
-        //Get our fsiargs from somewhere!
-        let fsiArgLine = if runArgs.Contains <@ Cli.RunArgs.FsiArgs @> then runArgs.GetResult <@ Cli.RunArgs.FsiArgs @> else ""
-        let s = if runArgs.Contains <@ Cli.RunArgs.Script @> then Some (runArgs.GetResult <@ Cli.RunArgs.Script @>)  else None
-        let fsiArgs = 
-            match
-                splitCommandLine fsiArgLine |> Seq.toList,
-                s,
-                List.isEmpty buildScripts with
+          //TODO check for presence of --fsiargs with no args?  Make attribute for UAP?
 
-            //TODO check for presence of --fsiargs with no args?  Make attribute for UAP?
+          //Use --fsiargs approach.
+          | x::xs, _, _ ->
+              let args = x::xs |> Array.ofList
+              //Find first arg that does not start with - (as these are fsi options that precede the fsx).
+              match args |> Array.tryFindIndex (fun arg -> arg.StartsWith("-") = false) with
+              | Some(i) ->
+                  let fsxPath = args.[i]
+                  if fsxPath.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) then
+                      let fsiOpts = if i > 0 then args.[0..i-1] else [||]
+                      let scriptArgs = if args.Length > (i+1) then args.[i+1..] else [||]
+                      fsiOpts |> List.ofArray, fsxPath, scriptArgs |> List.ofArray
+                  else 
+                    let msg = sprintf "Expected argument %s to be the build script path, but it does not have the .fsx extension." fsxPath
+                    failwithf "Unable to parse --fsiargs.  %s" msg
+              | None ->
+                    let msg = "Unable to locate the build script path."
+                    failwithf "Unable to parse --fsiargs.  %s" msg
+          //Script path is specified.
+          | [], Some(script), _ -> [], script, []
 
-            //Use --fsiargs approach.
-            | x::xs, _, _ ->
-                match FsiArgs.parse (x::xs |> Array.ofList)  with
-                | Choice1Of2(fsiArgs) -> fsiArgs
-                | Choice2Of2(msg) -> failwith (sprintf "Unable to parse --fsiargs.  %s." msg)
+          //No explicit script, but have in working directory.
+          | [], None, false -> [], List.head buildScripts, []
 
-            //Script path is specified.
-            | [], Some(script), _ -> FsiArgs([], script, [])
+          //Noooo script anywhere!
+          | [], None, true -> failwith "Build script not specified on command line, in fsi args or found in working directory."
 
-            //No explicit script, but have in working directory.
-            | [], None, false -> FsiArgs([], List.head buildScripts, [])
+      //Combine the key value pair vars and the flag vars.
+      let envVars =
+          seq {
+            yield! 
+              runArgs.GetResults(<@ Cli.RunArgs.EnvironmentVariable @>)
+              //|> Seq.map (fun s -> let split = s.Split(':') in split.[0], split.[1])
+            if runArgs.Contains <@ Cli.RunArgs.SingleTarget @> then yield "single-target", "true"
+            if runArgs.Contains <@ Cli.RunArgs.Target @> then yield "target", runArgs.GetResult <@ Cli.RunArgs.Target @>
+            yield "fsiargs-buildscriptargs", String.Join(" ", scriptArgs)
+          }
 
-            //Noooo script anywhere!
-            | [], None, true -> failwith "Build script not specified on command line, in fsi args or found in working directory."
-                  
-        //TODO if printDetails then printEnvironment cmdArgs args
-        let useCache = not (runArgs.Contains <@ Cli.RunArgs.NoCache @>)
-        if not (FakeRuntime.prepareAndRunScript printDetails fsiArgs envVars useCache) then exitCode <- 1
-        else if printDetails then log "Ready."
-      with
-      | exn ->
-          if printDetails then
-              sprintf "Build failed.\nError:\n%O" exn
-              |> traceError
-          else
-              if exn.InnerException <> null then
-                  sprintf "Build failed.\nError:\n%s\nInnerException:\n%s" exn.Message exn.InnerException.Message
-                  |> traceError
-                  //printUsage()
-              else
-                  sprintf "Build failed.\nError:\n%s" exn.Message
-                  |> traceError
-                  //printUsage()
+      let useCache = not (runArgs.Contains <@ Cli.RunArgs.NoCache @>)
+      if not (FakeRuntime.prepareAndRunScript printDetails additionalArgs scriptFile envVars useCache) then exitCode <- 1
+      else if printDetails then log "Ready."
+    with
+    | exn ->
+        if printDetails then
+            sprintf "Build failed.\nError:\n%O" exn
+            |> traceError
+        else
+            if exn.InnerException <> null then
+                sprintf "Build failed.\nError:\n%s\nInnerException:\n%s" exn.Message exn.InnerException.Message
+                |> traceError
+                //printUsage()
+            else
+                sprintf "Build failed.\nError:\n%s" exn.Message
+                |> traceError
+                //printUsage()
 
-          //let isKnownException = exn :? FAKEException
-          //if not isKnownException then
-          //    sendTeamCityError exn.Message
+        //let isKnownException = exn :? FAKEException
+        //if not isKnownException then
+        //    sendTeamCityError exn.Message
 
-          exitCode <- 1
+        exitCode <- 1
 
-      //killAllCreatedProcesses()
-
-    finally
-      traceEndBuild()
+    //killAllCreatedProcesses()
   )
 
   if not didSomething then
