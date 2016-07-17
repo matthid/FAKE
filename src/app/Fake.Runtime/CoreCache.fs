@@ -243,9 +243,9 @@ let setupAssemblyResolver (context:FakeContext) =
 
 let runScriptWithCacheProvider (config:FakeConfig) (cache:ICachingProvider) =
     let newContext, cacheInfo =  prepareContext config cache
-    
+
     setupAssemblyResolver newContext
-    
+
     // Add arguments to the Environment
     for (k,v) in config.Environment do
       setEnvironVar k v
