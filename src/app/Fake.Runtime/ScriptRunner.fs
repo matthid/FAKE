@@ -21,6 +21,10 @@ type AssemblyInfo =
   { FullName : string
     Version : string
     Location : string }
+  static member ofLocation (loc:string) =
+    let n = Mono.Cecil.AssemblyDefinition.ReadAssembly(loc).Name
+    { FullName = n.FullName; Version = n.Version.ToString(); Location = loc }
+
 
 type ScriptCompileOptions =
   { CompileReferences : string list
@@ -82,7 +86,7 @@ let private handleCoreCaching (context:FakeContext) (session:IFsiSession) fsiErr
 
         if (not <| targetDirectory.Exists) then targetDirectory.Create()
         if (destinationFile.Exists) then destinationFile.Delete()
-
+        
         try
             // Now we change the AssemblyName of the written Assembly via Mono.Cecil.
             // Strictly speaking this is not needed, however this helps with executing
@@ -94,9 +98,9 @@ let private handleCoreCaching (context:FakeContext) (session:IFsiSession) fsiErr
                     [ AppContext.BaseDirectory ]
                 let resolve name =
                     let n = AssemblyName(name)
-                    // Maybe caching provider can already tell us
-                    match cacheInfo.Provider.TryLoadCache (cacheInfo.CacheConfigPath) 
-                          |> Option.bind (List.tryFind (fun a -> a.FullName = name)) with
+                    // Maybe we have a runtime or reference assembly available
+                    match (context.Config.CompileOptions.CompileReferences |> List.map AssemblyInfo.ofLocation) @ context.Config.CompileOptions.RuntimeDependencies
+                          |> List.tryFind (fun a -> a.FullName = name) with
                     | Some f -> f.Location
                     | None ->
                         match searchpaths

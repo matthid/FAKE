@@ -56,21 +56,21 @@ module internal Cache =
               FullName = get "FullName"
               Version = get "Version" })
         |> Seq.toList
-
+        
+    let warningsFileName (f:FakeContext) = f.HashPath + "_warnings.txt"
+    let cleanFiles filesGen f =
+      filesGen
+      |> List.map (fun gen -> gen f)
+      |> List.filter File.Exists
+      |> List.iter File.Delete
+    let tryLoadDefault (context:FakeContext) =
+      let cachedDll = context.CachedAssemblyFilePath
+      if File.Exists cachedDll then
+        let warnings = warningsFileName context
+        let warningText = File.ReadAllText warnings
+        Some { CompiledAssembly = cachedDll; Warnings = warningText }
+      else None
     let defaultProvider =
-        let warningsFileName (f:FakeContext) = f.HashPath + "_warnings.txt"
-        let cleanFiles filesGen f =
-          filesGen
-          |> List.map (fun gen -> gen f)
-          |> List.filter File.Exists
-          |> List.iter File.Delete
-        let tryLoadDefault (context:FakeContext) =
-          let cachedDll = context.CachedAssemblyFilePath
-          if File.Exists cachedDll then
-            let warnings = warningsFileName context
-            let warningText = File.ReadAllText warnings
-            Some { CompiledAssembly = cachedDll; Warnings = warningText }
-          else None
 #if !NETSTANDARD1_6
         let xmlFileName (f:FakeContext) = f.HashPath + "_config.xml"
         let cleanFiles = cleanFiles [ warningsFileName; xmlFileName ]
@@ -124,35 +124,42 @@ module internal Cache =
                     cacheConfig.Save (xmlFile)
                     File.WriteAllText (warnings, cache.Warnings) }
 #else
+        let cleanFiles = cleanFiles [ warningsFileName ]
         { new ICachingProvider with
-            member x.MapFsiOptions opts =
-                let options = FsiOptions.ofArgs opts
-                if not options.NoFramework then // Caller should take care!
+            member __.CleanCache context = cleanFiles context
+            member __.TryLoadCache (context) =
+                traceFAKE "Default caching is disabled on dotnetcore, see https://github.com/dotnet/coreclr/issues/919#issuecomment-219212910"
+                
+                let fsiOpts = context.Config.CompileOptions.AdditionalArguments |> FsiOptions.ofArgs
+                if not fsiOpts.NoFramework then // Caller should take care!
                     let basePath = System.AppContext.BaseDirectory
                     let references =
                         System.IO.Directory.GetFiles(basePath, "*.dll")
                         |> Seq.filter (fun r -> not (System.IO.Path.GetFileName(r).ToLowerInvariant().StartsWith("api-ms")))
-                        |> Seq.filter (fun r ->
-                            try Mono.Cecil.ModuleDefinition.ReadModule(r) |> ignore
-                                true
-                            with e -> false)
+                        |> Seq.choose (fun r ->
+                            try Some (AssemblyInfo.ofLocation r)
+                            with e -> None)
                         |> Seq.toList
-                    { options with
-                        NoFramework = true
-                        Debug = Some DebugMode.Portable
-                        References = (references) @ options.References }
-                else options
-                |> (fun options -> options.AsArgs)
-            member x.Invalidate cachePath = if File.Exists cachePath then File.Delete cachePath
-            member x.TryLoadCache (cachePath) = 
-                traceFAKE "Default caching is disabled on dotnetcore, see https://github.com/dotnet/coreclr/issues/919#issuecomment-219212910"
-                None
-            //member x.GetAssembliesFromCache c = c.Assemblies
-            member x.ResolveAssembly a =
-                match a with
-                | Choice1Of2 name -> null
-                | Choice2Of2 a -> a
-            member x.TrySaveCache (cachePath) = false }
+                    let newAdditionalArgs =
+                        { fsiOpts with
+                            NoFramework = true
+                            Debug = Some DebugMode.Portable }
+                        |> (fun options -> options.AsArgs)
+                        |> Seq.toList
+                    { context with
+                        Config =
+                          { context.Config with
+                              CompileOptions =
+                                { context.Config.CompileOptions with
+                                    AdditionalArguments = newAdditionalArgs
+                                    RuntimeDependencies = references @ context.Config.CompileOptions.RuntimeDependencies
+                                    CompileReferences =
+                                        (references |> List.map (fun r -> r.Location)) @ context.Config.CompileOptions.CompileReferences
+                                }
+                          }
+                    }, None
+                else context, None
+            member x.SaveCache (context, cache) = () }
 #endif
 
 let fakeDirectoryName = ".fake"
@@ -179,14 +186,23 @@ let setupAssemblyResolver (context:FakeContext) =
         try let assem =
                 if assemInfo.Location <> "" then
 #if NETSTANDARD1_6
-                    loadContext.LoadFromAssemblyPath(assemInfo.Location)
+                    try
+                        loadContext.LoadFromAssemblyPath(assemInfo.Location)
+                    with :? FileLoadException as e ->
+                        if printDetails then
+                            Trace.tracefn "Error while loading assembly: %O" e
+                        let assemblyName = new System.Reflection.AssemblyName(assemInfo.FullName)
+                        let asem = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(assemblyName.Name))
+                        if printDetails then
+                            Trace.traceFAKE "recovered and used already loaded assembly '%s' instead of '%s' ('%s')" asem.FullName assemInfo.FullName assemInfo.Location
+                        asem
                 else loadContext.LoadFromAssemblyName(new AssemblyName(assemInfo.FullName))
 #else
                     Reflection.Assembly.LoadFrom(assemInfo.Location)
                 else Reflection.Assembly.Load(assemInfo.FullName)
 #endif
             Some(assemInfo, assem)
-        with ex -> if printDetails then tracef "Unable to find assembly %A" assemInfo
+        with ex -> if printDetails then tracef "Unable to find assembly %A. (Error: %O)" assemInfo ex
                    None
 
 #if NETSTANDARD1_6
@@ -251,3 +267,6 @@ let runScriptWithCacheProvider (config:FakeConfig) (cache:ICachingProvider) =
     | Some newCache ->
         cache.SaveCache(newContext, newCache)
     | _ -> ()
+
+    // Return if the script suceeded
+    result.IsSome
