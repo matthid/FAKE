@@ -25,6 +25,7 @@ let ``simple runtime error``() =
         Assert.Fail ("Expected an runtime error and a nonzero exit code!")
     with e -> ()
 
+[<Ignore("relative source references are currently not supported.")>]
 [<Test>]
 let ``reference fake runtime``() = 
     fakeRun "reference_fake-runtime.fsx" "dotnetcore-reference-fake-runtime"
