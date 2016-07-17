@@ -165,6 +165,9 @@ Target "Test" (fun _ ->
     !! (testDir @@ "Test.*.dll")
       ++ (testDir @@ "FsCheck.Fake.dll")
     |>  xUnit id
+    
+    !! (testDir @@ "*.IntegrationTests.dll")
+    |> Fake.Testing.NUnit3.NUnit3 id
 )
 
 Target "Bootstrap" (fun _ ->
@@ -324,6 +327,14 @@ Target "InstallDotnetCore" (fun _ ->
 )
 
 Target "DotnetRestore" (fun _ ->
+
+      // Copy nupkgs to nuget/dotnetcore
+      !! "lib/nupgks/**/*.nupkg"
+      |> Seq.iter (fun file ->
+            let dir = nugetDir @@ "dotnetcore"
+            ensureDirectory dir
+            File.Copy(file, dir @@ Path.GetFileName file, true))
+
       // dotnet restore
       !! "src/app/*/project.json"
       |> Seq.iter(fun proj ->
@@ -343,14 +354,20 @@ Target "DotnetBuild" (fun _ ->
       )
       // dotnet publish
       [ "win7-x86"; "win7-x64"; "osx.10.11-x64"; "ubuntu.14.04-x64" ]
+      |> List.map Some
+      |> (fun rs -> None :: rs)
       |> Seq.iter (fun runtime ->
             !! "src/app/Fake.netcore/project.json"
             |> Seq.iter(fun proj ->
                 let projName = Path.GetFileName(Path.GetDirectoryName proj)
+                let runtimeName =
+                    match runtime with
+                    | Some r -> r
+                    | None -> "current"
                 DotnetPublish (fun c ->
                     { c with
-                        Runtime = Some runtime
-                        OutputPath = Some (nugetDir @@ "dotnetcore" @@ projName @@ runtime) 
+                        Runtime = runtime
+                        OutputPath = Some (nugetDir @@ "dotnetcore" @@ projName @@ runtimeName) 
                     }) proj
             )
       )

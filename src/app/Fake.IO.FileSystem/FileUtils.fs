@@ -1,10 +1,10 @@
 ﻿/// Shell-like functions. Similar to [Ruby's FileUtils](http://www.ruby-doc.org/stdlib-2.0.0/libdoc/rake/rdoc/FileUtils.html).
-module Fake.FileSystem.Shell
+module Fake.IO.FileSystem.Shell
 
 open System.IO
 open Fake.Core
-open Fake.FileSystem.Operators
-open Fake.FileSystem.FileSystemInfo
+open Fake.IO.FileSystem.Operators
+open Fake.IO.FileSystem.FileSystemInfo
 
 /// Copies a single file to the target and overwrites the existing file.
 /// ## Parameters

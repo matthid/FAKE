@@ -2,7 +2,6 @@ using System.IO;
 using System.Linq;
 using Fake;
 using Machine.Specifications;
-using FileSystem = Fake.FileSystemModule;
 
 namespace Test.FAKECore.Globbing.TestSample5
 {

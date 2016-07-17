@@ -269,4 +269,4 @@ let runScriptWithCacheProvider (config:FakeConfig) (cache:ICachingProvider) =
     | _ -> ()
 
     // Return if the script suceeded
-    result.IsSome
+    result.IsNone

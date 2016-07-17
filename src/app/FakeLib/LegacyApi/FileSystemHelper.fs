@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-[<System.Obsolete("use Fake.FileSystem modules instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.IO.FileSystem modules instead. Do not use `open Fake` anymore!")>]
 /// Contains helpers which allow to interact with the file system.
 module Fake.FileSystemHelper
 
@@ -9,11 +9,11 @@ open System.IO
 open System.Runtime.InteropServices
 
 /// Creates a DirectoryInfo for the given path.
-[<System.Obsolete("use Fake.FileSystem.DirectoryInfo.ofPath (open Fake.FileSystem) instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.IO.FileSystem.DirectoryInfo.ofPath (open Fake.IO.FileSystem) instead. Do not use `open Fake` anymore!")>]
 let inline directoryInfo path = new DirectoryInfo(path)
 
 /// Creates a FileInfo for the given path.
-[<System.Obsolete("use Fake.FileSystem.FileInfo.ofPath (open Fake.FileSystem) instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.IO.FileSystem.FileInfo.ofPath (open Fake.IO.FileSystem) instead. Do not use `open Fake` anymore!")>]
 let inline fileInfo path = new FileInfo(path)
 
 /// Creates a FileInfo or a DirectoryInfo for the given path
