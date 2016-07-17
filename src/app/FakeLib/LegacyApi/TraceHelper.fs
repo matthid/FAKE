@@ -1,14 +1,7 @@
 ﻿/// This module contains function which allow to trace build output
-#if CORE_CLR
-module Fake.Trace
-open Fake.Environment
-open Fake.String
-open Fake.BuildServer
-open Fake.TraceListener
-#else
 [<AutoOpen>]
+[<System.Obsolete("use Fake.Core.Trace module instead. Do not use `open Fake` anymore!")>]
 module Fake.TraceHelper
-#endif
 
 open System
 open System.IO

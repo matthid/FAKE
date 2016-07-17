@@ -1,4 +1,5 @@
 [<AutoOpen>]
+[<System.Obsolete("use Fake.Core.TargetOperators module instead. Do not use `open Fake` anymore!")>]
 /// Provides functions and operators to deal with FAKE targets and target dependencies.
 module Fake.AdditionalSyntax
 
