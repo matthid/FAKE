@@ -165,7 +165,9 @@ Target "Test" (fun _ ->
     !! (testDir @@ "Test.*.dll")
       ++ (testDir @@ "FsCheck.Fake.dll")
     |>  xUnit id
-    
+)
+
+Target "TestDotnetCore" (fun _ ->
     !! (testDir @@ "*.IntegrationTests.dll")
     |> Fake.Testing.NUnit3.NUnit3 id
 )
@@ -422,6 +424,7 @@ Target "Default" DoNothing
     =?> ("InstallDotnetCore", not isLinux)
     =?> ("DotnetRestore", not isLinux)
     =?> ("DotnetBuild", not isLinux)
+    =?> ("TestDotnetCore", not isLinux)
     //==> "ILRepack"
     ==> "Test"
     ==> "Bootstrap"
