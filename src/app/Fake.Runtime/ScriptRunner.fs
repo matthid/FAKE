@@ -259,6 +259,8 @@ let runUncached (context:FakeContext) : ResultCoreCacheInfo * Exception option =
           traceError e.Result.Error.Merged
           reraise ()
 
+    session.EvalInteraction """ """
+
     let result =
         try
             session.EvalScript context.Config.ScriptFilePath

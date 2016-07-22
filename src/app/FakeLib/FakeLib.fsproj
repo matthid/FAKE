@@ -41,6 +41,9 @@
       <Link>paket-files/YaafFSharpScripting.fs</Link>
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="..\Fake.Core.Context\Context.fs">
+      <Link>Fake.Core.Context/Context.fs</Link>
+    </Compile>
     <Compile Include="..\Fake.Runtime\LegacyApiHelper.fs">
       <Link>Fake.Runtime/LegacyApiHelper.fs</Link>
     </Compile>

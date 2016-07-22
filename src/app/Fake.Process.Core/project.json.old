@@ -11,7 +11,9 @@
     "compile": {
       "includeFiles": [
         "AssemblyInfo.fs",
-        "String.fs"
+        "Path.fs",
+        "FileSystem.fs",
+        "FileUtils.fs"
       ]
     }
   },
@@ -21,12 +23,13 @@
       "imports": "dnxcore50"
     }
   },
-  "dependencies":{
-    "FSharp.Core": "4.0.1.7-alpha"
+  "dependencies": {
+    "Fake.Core.String": "1.0.0-alpha1"
   },
   "frameworks": {
     "net46": {
       "dependencies": {
+        "FSharp.Core": "4.0.0.1",
         "FSharp.Compiler.Service": "3.0.0"
       },
       "frameworkAssemblies": {
@@ -52,6 +55,8 @@
         "dnxcore50"
       ],
       "dependencies": {
+        "System.Diagnostics.FileVersionInfo": "4.0.0",
+        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-160629",
         "NETStandard.Library": "1.6.0"
       }
     }

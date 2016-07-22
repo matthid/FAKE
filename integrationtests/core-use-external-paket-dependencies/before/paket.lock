@@ -1,59 +1,23 @@
 NUGET
-  remote: .\..\..\..\nuget\dotnetcore
-    Chessie (0.5.2) - framework: >= net46, >= netstandard16
-      FSharp.Core (>= 4.0.0.1) - framework: >= net46
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
-      NETStandard.Library (>= 1.6) - framework: >= netstandard16
-    Fake.Runtime (1.0.0-alpha1)
-      FSharp.Compiler.Service (>= 3.0) - framework: >= net46
-      FSharp.Compiler.Service.netcore (>= 1.0.0-alpha-00002) - framework: >= netstandard16
-      FSharp.Core (>= 4.0.0.1) - framework: >= net46
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
-      Mono.Cecil (>= 0.9.6) - framework: >= netstandard16
-      Mono.Cecil (>= 0.9.6.1) - framework: >= net46
-      NETStandard.Library (>= 1.6) - framework: >= netstandard16
-      Paket.Core.netcore (>= 3.4.0-alpha002) - framework: >= net46, >= netstandard16
-      System.Diagnostics.TraceSource (>= 4.0) - framework: >= netstandard16
-      System.Reflection (>= 4.1) - framework: >= netstandard16
-      System.Reflection.Primitives (>= 4.0.1) - framework: >= netstandard16
-      System.Reflection.TypeExtensions (>= 4.1) - framework: >= netstandard16
-      System.Runtime (>= 4.1) - framework: >= netstandard16
-      System.Runtime.Extensions (>= 4.1) - framework: >= netstandard16
-      System.Runtime.Loader (>= 4.0) - framework: >= netstandard16
-      System.Security.Cryptography.Algorithms (>= 4.2) - framework: >= netstandard16
-      System.Security.Cryptography.Primitives (>= 4.0) - framework: >= netstandard16
-    FSharp.Compiler.Service.netcore (1.0.0-alpha-00002) - framework: >= netstandard16
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
-      NETStandard.Library (>= 1.6) - framework: >= netstandard16
-      System.Collections.Immutable (>= 1.2) - framework: >= netstandard16
-      System.Diagnostics.Process (>= 4.1) - framework: >= netstandard16
-      System.Diagnostics.TraceSource (>= 4.0) - framework: >= netstandard16
-      System.Reflection.Metadata (>= 1.4.1-beta-24227-04) - framework: >= netstandard16
-      System.Security.Cryptography.Algorithms (>= 4.2) - framework: >= netstandard16
-      System.Security.Cryptography.Primitives (>= 4.0) - framework: >= netstandard16
-    Paket.Core.netcore (3.4.0-alpha002) - framework: >= net46, >= netstandard16
-      Chessie (>= 0.5.2) - framework: >= net46, >= netstandard16
-      FSharp.Core (>= 4.0.0.1) - framework: >= net46
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
-      Mono.Cecil (>= 0.9.6) - framework: >= netstandard16
-      Mono.Cecil (>= 0.9.6.1) - framework: >= net46
-      NETStandard.Library (>= 1.6) - framework: >= netstandard16
-      Newtonsoft.Json (>= 9.0.1) - framework: >= net46, >= netstandard16
-      System.Diagnostics.FileVersionInfo (>= 4.0) - framework: >= netstandard16
-      System.Diagnostics.Process (>= 4.1) - framework: >= netstandard16
-      System.Diagnostics.TraceSource (>= 4.0) - framework: >= netstandard16
-      System.Net.Requests (>= 4.0.11) - framework: >= netstandard16
-      System.Security.Cryptography.Algorithms (>= 4.2) - framework: >= netstandard16
-      System.Security.Cryptography.ProtectedData (>= 4.0) - framework: >= netstandard16
-      System.Xml.XDocument (>= 4.0.11) - framework: >= netstandard16
-      System.Xml.XmlDocument (>= 4.0.1) - framework: >= netstandard16
-      System.Xml.XPath.XDocument (>= 4.0.1) - framework: >= netstandard16
-      System.Xml.XPath.XmlDocument (>= 4.0.1) - framework: >= netstandard16
   remote: https://www.nuget.org/api/v2
+    Chessie (0.6) - framework: >= net46, >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= netstandard16
+      NETStandard.Library (>= 1.6) - framework: >= netstandard16
     FSharp.Compiler.Service (6.0.1) - framework: >= net46
       System.Collections.Immutable (>= 1.2)
       System.Reflection.Metadata (>= 1.4.1-beta-24227-04)
-    FSharp.Core (4.0.0.1) - framework: >= net46
+    FSharp.Core (4.0.1.7-alpha)
+      Microsoft.NETCore.Platforms (>= 1.0.1) - framework: >= netstandard16
+      NETStandard.Library (>= 1.6) - framework: >= netstandard16
+      System.Linq.Expressions (>= 4.1) - framework: >= netstandard16
+      System.Linq.Queryable (>= 4.0.1) - framework: >= netstandard16
+      System.Net.Requests (>= 4.0.11) - framework: >= netstandard16
+      System.Reflection.Emit (>= 4.0.1) - framework: >= netstandard16
+      System.Reflection.TypeExtensions (>= 4.1) - framework: >= netstandard16
+      System.Runtime.Loader (>= 4.0) - framework: >= netstandard16
+      System.Threading.Tasks.Parallel (>= 4.0.1) - framework: >= netstandard16
+      System.Threading.Thread (>= 4.0) - framework: >= netstandard16
+      System.Threading.ThreadPool (>= 4.0.10) - framework: >= netstandard16
     Microsoft.CSharp (4.0.1) - framework: >= netstandard16
       System.Collections (>= 4.0.11) - framework: dnxcore50, >= netstandard13
       System.Diagnostics.Debug (>= 4.0.11) - framework: dnxcore50, >= netstandard13
@@ -71,18 +35,6 @@ NUGET
       System.Runtime.Extensions (>= 4.1) - framework: dnxcore50, >= netstandard13
       System.Runtime.InteropServices (>= 4.1) - framework: dnxcore50, >= netstandard13
       System.Threading (>= 4.0.11) - framework: dnxcore50, >= netstandard13
-    Microsoft.FSharp.Core.netcore (1.0.0-alpha-160629)
-      Microsoft.NETCore.Platforms (>= 1.0.1) - framework: >= netstandard16
-      NETStandard.Library (>= 1.6) - framework: >= netstandard16
-      System.Linq.Expressions (>= 4.1) - framework: >= netstandard16
-      System.Linq.Queryable (>= 4.0.1) - framework: >= netstandard16
-      System.Net.Requests (>= 4.0.11) - framework: >= netstandard16
-      System.Reflection.Emit (>= 4.0.1) - framework: >= netstandard16
-      System.Reflection.TypeExtensions (>= 4.1) - framework: >= netstandard16
-      System.Runtime.Loader (>= 4.0) - framework: >= netstandard16
-      System.Threading.Tasks.Parallel (>= 4.0.1) - framework: >= netstandard16
-      System.Threading.Thread (>= 4.0) - framework: >= netstandard16
-      System.Threading.ThreadPool (>= 4.0.10) - framework: >= netstandard16
     Microsoft.NETCore.Platforms (1.0.1) - framework: >= netstandard16
     Microsoft.NETCore.Targets (1.0.1) - framework: >= netstandard16
     Microsoft.Win32.Primitives (4.0.1) - framework: >= netstandard16
@@ -98,7 +50,7 @@ NUGET
       System.Runtime.Extensions (>= 4.1) - framework: >= netstandard13
       System.Runtime.Handles (>= 4.0.1) - framework: >= netstandard13
       System.Runtime.InteropServices (>= 4.1) - framework: >= netstandard13
-    Mono.Cecil (0.9.6.3) - framework: >= netstandard16
+    Mono.Cecil (0.9.6.3) - framework: >= net46, >= netstandard16
     NETStandard.Library (1.6) - framework: >= netstandard16
       Microsoft.NETCore.Platforms (>= 1.0.1) - framework: >= netstandard10
       Microsoft.Win32.Primitives (>= 4.0.1) - framework: >= netstandard13
@@ -742,3 +694,47 @@ NUGET
       System.Xml.ReaderWriter (>= 4.0.11) - framework: >= netstandard13
       System.Xml.XmlDocument (>= 4.0.1) - framework: >= net46, >= netstandard13
       System.Xml.XPath (>= 4.0.1) - framework: >= net46, >= netstandard13
+  remote: .\..\..\..\nuget\dotnetcore
+    Fake.Runtime (1.0.0-alpha1)
+      FSharp.Compiler.Service (>= 3.0) - framework: >= net46
+      FSharp.Compiler.Service.netcore (>= 1.0.0-alpha-00002) - framework: >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= net46, >= netstandard16
+      Mono.Cecil (>= 0.9.6) - framework: >= netstandard16
+      Mono.Cecil (>= 0.9.6.1) - framework: >= net46
+      NETStandard.Library (>= 1.6) - framework: >= netstandard16
+      Paket.Core.netcore (>= 3.10.0-alpha001) - framework: >= net46, >= netstandard16
+      System.Diagnostics.TraceSource (>= 4.0) - framework: >= netstandard16
+      System.Reflection (>= 4.1) - framework: >= netstandard16
+      System.Reflection.Primitives (>= 4.0.1) - framework: >= netstandard16
+      System.Reflection.TypeExtensions (>= 4.1) - framework: >= netstandard16
+      System.Runtime (>= 4.1) - framework: >= netstandard16
+      System.Runtime.Extensions (>= 4.1) - framework: >= netstandard16
+      System.Runtime.Loader (>= 4.0) - framework: >= netstandard16
+      System.Security.Cryptography.Algorithms (>= 4.2) - framework: >= netstandard16
+      System.Security.Cryptography.Primitives (>= 4.0) - framework: >= netstandard16
+    FSharp.Compiler.Service.netcore (1.0.0-alpha-00002) - framework: >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= netstandard16
+      NETStandard.Library (>= 1.6) - framework: >= netstandard16
+      System.Collections.Immutable (>= 1.2) - framework: >= netstandard16
+      System.Diagnostics.Process (>= 4.1) - framework: >= netstandard16
+      System.Diagnostics.TraceSource (>= 4.0) - framework: >= netstandard16
+      System.Reflection.Metadata (>= 1.4.1-beta-24227-04) - framework: >= netstandard16
+      System.Security.Cryptography.Algorithms (>= 4.2) - framework: >= netstandard16
+      System.Security.Cryptography.Primitives (>= 4.0) - framework: >= netstandard16
+    Paket.Core.netcore (3.10.0-alpha001) - framework: >= net46, >= netstandard16
+      Chessie (>= 0.6) - framework: >= net46, >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= net46, >= netstandard16
+      Mono.Cecil (>= 0.9.6) - framework: >= netstandard16
+      Mono.Cecil (>= 0.9.6.1) - framework: >= net46
+      NETStandard.Library (>= 1.6) - framework: >= netstandard16
+      Newtonsoft.Json (>= 9.0.1) - framework: >= net46, >= netstandard16
+      System.Diagnostics.FileVersionInfo (>= 4.0) - framework: >= netstandard16
+      System.Diagnostics.Process (>= 4.1) - framework: >= netstandard16
+      System.Diagnostics.TraceSource (>= 4.0) - framework: >= netstandard16
+      System.Net.Requests (>= 4.0.11) - framework: >= netstandard16
+      System.Security.Cryptography.Algorithms (>= 4.2) - framework: >= netstandard16
+      System.Security.Cryptography.ProtectedData (>= 4.0) - framework: >= netstandard16
+      System.Xml.XDocument (>= 4.0.11) - framework: >= netstandard16
+      System.Xml.XmlDocument (>= 4.0.1) - framework: >= netstandard16
+      System.Xml.XPath.XDocument (>= 4.0.1) - framework: >= netstandard16
+      System.Xml.XPath.XmlDocument (>= 4.0.1) - framework: >= netstandard16

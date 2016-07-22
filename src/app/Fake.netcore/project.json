@@ -37,13 +37,13 @@
      "ubuntu.14.04-x64": { }
   },
   "dependencies": {
+    "FSharp.Core": "4.0.1.7-alpha",
     "Argu": "3.0.0-beta02",
     "Fake.Runtime": "1.0.0-alpha1"
   },
   "frameworks": {
     "net46": {
       "dependencies": {
-        "FSharp.Core": "4.0.0.1",
         "FSharp.Compiler.Service": "3.0.0",
         "Mono.Cecil": "0.9.6.1",
       },
@@ -86,7 +86,6 @@
         "System.Runtime": "4.1.0",
         "System.Runtime.Loader": "4.0.0",
         "System.Runtime.Extensions": "4.1.0",
-        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-160629",
         "FSharp.Compiler.Service.netcore": "1.0.0-alpha-00002",
         "System.Security.Cryptography.Algorithms": "4.2.0",
         "Microsoft.NETCore.App": {

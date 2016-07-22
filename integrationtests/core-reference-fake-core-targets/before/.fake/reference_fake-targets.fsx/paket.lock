@@ -3,39 +3,33 @@ NUGET
     Fake.Core.BuildServer (1.0.0-alpha1) - framework: >= net46, >= netstandard16
       Fake.Core.Environment (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
       Fake.Core.String (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
-      FSharp.Core (>= 4.0.0.1) - framework: >= net46
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= net46, >= netstandard16
       NETStandard.Library (>= 1.6) - framework: >= netstandard16
     Fake.Core.Environment (1.0.0-alpha1) - framework: >= net46, >= netstandard16
-      FSharp.Core (>= 4.0.0.1) - framework: >= net46
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= net46, >= netstandard16
       NETStandard.Library (>= 1.6) - framework: >= netstandard16
     Fake.Core.String (1.0.0-alpha1) - framework: >= net46, >= netstandard16
       FSharp.Compiler.Service (>= 3.0) - framework: >= net46
-      FSharp.Core (>= 4.0.0.1) - framework: >= net46
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= net46, >= netstandard16
       NETStandard.Library (>= 1.6) - framework: >= netstandard16
     Fake.Core.Targets (1.0.0-alpha1)
       Fake.Core.BuildServer (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
       Fake.Core.Environment (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
       Fake.Core.String (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
       Fake.Core.Tracing (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
-      FSharp.Core (>= 4.0.0.1) - framework: >= net46
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= net46, >= netstandard16
       NETStandard.Library (>= 1.6) - framework: >= netstandard16
     Fake.Core.Tracing (1.0.0-alpha1) - framework: >= net46, >= netstandard16
       Fake.Core.BuildServer (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
       Fake.Core.Environment (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
       Fake.Core.String (>= 1.0.0-alpha1) - framework: >= net46, >= netstandard16
-      FSharp.Core (>= 4.0.0.1) - framework: >= net46
-      Microsoft.FSharp.Core.netcore (>= 1.0.0-alpha-160629) - framework: >= netstandard16
+      FSharp.Core (>= 4.0.1.7-alpha) - framework: >= net46, >= netstandard16
       NETStandard.Library (>= 1.6) - framework: >= netstandard16
   remote: https://www.nuget.org/api/v2
     FSharp.Compiler.Service (6.0.1) - framework: >= net46
       System.Collections.Immutable (>= 1.2)
       System.Reflection.Metadata (>= 1.4.1-beta-24227-04)
-    FSharp.Core (4.0.0.1) - framework: >= net46
-    Microsoft.FSharp.Core.netcore (1.0.0-alpha-160629)
+    FSharp.Core (4.0.1.7-alpha)
       Microsoft.NETCore.Platforms (>= 1.0.1) - framework: >= netstandard16
       NETStandard.Library (>= 1.6) - framework: >= netstandard16
       System.Linq.Expressions (>= 4.1) - framework: >= netstandard16

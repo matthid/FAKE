@@ -23,13 +23,13 @@
     }
   },
   "dependencies": {
+    "FSharp.Core": "4.0.1.7-alpha",
     "Fake.Core.Tracing": "1.0.0-alpha1",
     "Fake.IO.FileSystem": "1.0.0-alpha1"
   },
   "frameworks": {
     "net46": {
       "dependencies": {
-        "FSharp.Core": "4.0.0.1"
       },
       "frameworkAssemblies": {
         "mscorlib": "",
@@ -50,7 +50,6 @@
         "dnxcore50"
       ],
       "dependencies": {
-        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-160629",
         "NETStandard.Library": "1.6.0"
       }
     }

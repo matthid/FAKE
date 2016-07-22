@@ -3,7 +3,7 @@ source https://nuget.org/api/v2
 source .\..\..\..\..\..\nuget\dotnetcore
 
 nuget Fake.Runtime prerelease
-nuget Microsoft.FSharp.Core.netcore
+nuget FSharp.Core prerelease
 -- Fake Dependencies -- *)
 #load "./.fake/reference_fake-runtime.fsx/loadDependencies.fsx"
 
