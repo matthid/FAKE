@@ -40,6 +40,10 @@ let fake command scenario =
     prepare scenario
 
     directFake command scenario
-
+#if DEBUG
+let fakeVerboseFlag = "--verbose"
+#else
+let fakeVerboseFlag = ""
+#endif
 let fakeRun scriptName scenario =
-    fake (sprintf "--verbose run %s" scriptName) scenario |> ignore
+    fake (sprintf "%s run %s" fakeVerboseFlag scriptName) scenario |> ignore

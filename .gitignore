@@ -71,4 +71,5 @@ paket-files/
 
 mytemp
 .fake
+!/integrationtests/*/before/.fake
 project.lock.json
