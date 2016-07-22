@@ -23,8 +23,8 @@ let prepare scenario =
 
 let directFakeInPath command scenarioPath target =
     let result =
-        Fake.ProcessHelper.ExecProcessAndReturnMessages (fun info ->
-          info.Environment.["target"] <- target
+        Fake.ProcessHelper.ExecProcessAndReturnMessages (fun (info:System.Diagnostics.ProcessStartInfo) ->
+          info.EnvironmentVariables.["target"] <- target
           info.FileName <- fakeToolPath
           info.WorkingDirectory <- scenarioPath
           info.Arguments <- command) (System.TimeSpan.FromMinutes 5.)
