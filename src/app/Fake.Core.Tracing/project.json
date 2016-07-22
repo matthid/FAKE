@@ -27,11 +27,10 @@
     "Fake.Core.String": "1.0.0-alpha1",
     "Fake.Core.BuildServer": "1.0.0-alpha1"
   },
-  "disabled_frameworks": {
+  "frameworks": {
     "net46": {
       "dependencies": {
         "FSharp.Core": "4.0.0.1",
-        "FSharp.Compiler.Service": "3.0.0"
       },
       "frameworkAssemblies": {
         "Microsoft.Build.Framework": "",
@@ -44,9 +43,7 @@
         "System.Xml.Linq": "",
         "System.Core": ""
       }
-    }
-  },
-  "frameworks": {
+    },
     "netstandard1.6": {
       "buildOptions": {
         "define": [

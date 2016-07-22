@@ -40,9 +40,7 @@
       <Paket>True</Paket>
       <Link>paket-files/YaafFSharpScripting.fs</Link>
     </Compile>
-    <Compile Include="..\Fake.Runtime\AssemblyInfo.fs">
-      <Link>Fake.Runtime/AssemblyInfo.fs</Link>
-    </Compile>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="..\Fake.Runtime\LegacyApiHelper.fs">
       <Link>Fake.Runtime/LegacyApiHelper.fs</Link>
     </Compile>

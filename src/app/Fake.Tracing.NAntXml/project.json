@@ -27,6 +27,18 @@
     "Fake.IO.FileSystem": "1.0.0-alpha1"
   },
   "frameworks": {
+    "net46": {
+      "dependencies": {
+        "FSharp.Core": "4.0.0.1"
+      },
+      "frameworkAssemblies": {
+        "mscorlib": "",
+        "System": "",
+        "System.Xml": "",
+        "System.Xml.Linq": "",
+        "System.Core": ""
+      }
+    },
     "netstandard1.6": {
       "buildOptions": {
         "define": [

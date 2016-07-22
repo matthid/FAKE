@@ -325,7 +325,7 @@ Target "CreateNuGet" (fun _ ->
 open Fake.Dotnet
 
 Target "InstallDotnetCore" (fun _ ->
-    DotnetCliInstall id
+    DotnetCliInstall Preview2ToolingOptions
 )
 
 Target "DotnetRestore" (fun _ ->
@@ -369,6 +369,7 @@ Target "DotnetBuild" (fun _ ->
                 DotnetPublish (fun c ->
                     { c with
                         Runtime = runtime
+                        Framework = Some "netcoreapp1.0"
                         OutputPath = Some (nugetDir @@ "dotnetcore" @@ projName @@ runtimeName) 
                     }) proj
             )

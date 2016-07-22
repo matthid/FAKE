@@ -1,8 +1,10 @@
 /// This module contains functions which allow to read and write environment variables and build parameters
-namespace System
+namespace Fake.SystemHelper
 
 #if DOTNETCORE
 module Environment =
+    type Environment = System.Environment
+
     type SpecialFolder =
         | ApplicationData
         | UserProfile
@@ -28,6 +30,9 @@ namespace Fake.Core
 
 module Environment =
     type Environment = System.Environment
+#if DOTNETCORE
+    open Fake.SystemHelper
+#endif
 
     open System
     open System.IO
@@ -139,7 +144,7 @@ module Environment =
         | null, "AMD64" 
         | "x86", "AMD64" -> environVar "ProgramFiles(x86)"
         | _ -> environVar "ProgramFiles"
-        |> fun detected -> if detected = null then @"C:\Program Files (x86)\" else detected
+        |> fun detected -> if isNull detected then @"C:\Program Files (x86)\" else detected
 
     /// The system root environment variable. Typically "C:\Windows"
     let SystemRoot = environVar "SystemRoot"
@@ -266,7 +271,7 @@ module Environment =
         else windowsPath.Replace(@"\", directorySeparator)
 
     /// Contains the IO encoding which is given via build parameter "encoding" or the default encoding if no encoding was specified.
-    let encoding = 
+    let getDefaultEncoding() = 
         match environVarOrDefault "encoding" "default" with
 #if !DOTNETCORE
         | "default" -> Text.Encoding.Default

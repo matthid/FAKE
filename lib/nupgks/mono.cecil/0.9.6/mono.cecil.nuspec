@@ -9,18 +9,11 @@
     <description>Cecil is a library to generate and inspect programs and libraries in the ECMA CIL form</description>
     <tags></tags>
     <dependencies>
-      <group targetFramework=".NETFramework4.5" />
-      <group targetFramework=".NETStandard1.5">
-        <dependency id="NETStandard.Library" version="[1.5.0-rc2-23925, )" />
-        <dependency id="System.IO" version="[4.1.0-rc2-24022, )" />
-        <dependency id="System.Reflection" version="[4.1.0-rc2-24022, )" />
-        <dependency id="System.Reflection.TypeExtensions" version="[4.1.0-rc2-24022, )" />
-        <dependency id="System.Reflection.Primitives" version="[4.0.1-rc2-24022, )" />
-        <dependency id="System.Runtime" version="[4.1.0-rc2-24022, )" />
-        <dependency id="System.Runtime.Extensions" version="[4.1.0-rc2-24022, )" />
-        <dependency id="System.Threading" version="[4.0.11-rc2-24022, )" />
-        <dependency id="System.Security.Cryptography.Primitives" version="[4.0.0-rc2-24022, )" />
-        <dependency id="System.Security.Cryptography.Algorithms" version="[4.1.0-rc2-24022, )" />
+      <group targetFramework=".NETStandard1.3">
+        <dependency id="Microsoft.NETCore.Portable.Compatibility" version="[1.0.1, )" />
+        <dependency id="NETStandard.Library" version="[1.6.0, )" />
+        <dependency id="System.Security.Cryptography.Algorithms" version="[4.2.0, )" />
+        <dependency id="System.Security.Cryptography.Csp" version="[4.0.0, )" />
       </group>
     </dependencies>
   </metadata>

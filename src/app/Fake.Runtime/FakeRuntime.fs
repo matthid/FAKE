@@ -135,7 +135,9 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
     |> Seq.toList
     |> Paket.LoadingScripts.PackageAndAssemblyResolution.getPackageOrderResolvedPackage
     |> Seq.collect (fun p ->
-      let installModel = paketDependencies.GetInstalledPackageModel(group, p.Name.ToString())
+      let installModel =
+        paketDependencies.GetInstalledPackageModel(group, p.Name.ToString())
+          .ApplyFrameworkRestrictions(Paket.Requirements.getRestrictionList p.Settings.FrameworkRestrictions)
       Paket.LoadingScripts.PackageAndAssemblyResolution.getDllsWithinPackage framework installModel)
     |> Seq.choose (fun fi ->
       let fullName = fi.FullName

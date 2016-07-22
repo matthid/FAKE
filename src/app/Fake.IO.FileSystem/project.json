@@ -26,7 +26,7 @@
   "dependencies": {
     "Fake.Core.String": "1.0.0-alpha1"
   },
-  "disabled_frameworks": {
+  "frameworks": {
     "net46": {
       "dependencies": {
         "FSharp.Core": "4.0.0.1",
@@ -43,9 +43,7 @@
         "System.Xml.Linq": "",
         "System.Core": ""
       }
-    }
-  },
-  "frameworks": {
+    },
     "netstandard1.6": {
       "buildOptions": {
         "define": [

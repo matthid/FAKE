@@ -520,6 +520,7 @@ module Targets =
                else
                    targets |> Array.iter runSingleTarget
 
+        printfn "run %s" targetName
         let watch = new System.Diagnostics.Stopwatch()
         watch.Start()
         try

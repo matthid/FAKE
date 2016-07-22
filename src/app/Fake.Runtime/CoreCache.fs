@@ -187,7 +187,7 @@ let setupAssemblyResolver (context:FakeContext) =
                 if assemInfo.Location <> "" then
 #if NETSTANDARD1_6
                     try
-                        loadContext.LoadFromAssemblyPath(assemInfo.Location)
+                        Some assemInfo.Location, loadContext.LoadFromAssemblyPath(assemInfo.Location)
                     with :? FileLoadException as e ->
                         if printDetails then
                             Trace.tracefn "Error while loading assembly: %O" e
@@ -195,13 +195,13 @@ let setupAssemblyResolver (context:FakeContext) =
                         let asem = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(assemblyName.Name))
                         if printDetails then
                             Trace.traceFAKE "recovered and used already loaded assembly '%s' instead of '%s' ('%s')" asem.FullName assemInfo.FullName assemInfo.Location
-                        asem
-                else loadContext.LoadFromAssemblyName(new AssemblyName(assemInfo.FullName))
+                        None, asem
+                else None, loadContext.LoadFromAssemblyName(new AssemblyName(assemInfo.FullName))
 #else
-                    Reflection.Assembly.LoadFrom(assemInfo.Location)
-                else Reflection.Assembly.Load(assemInfo.FullName)
+                    Some assemInfo.Location, Reflection.Assembly.LoadFrom(assemInfo.Location)
+                else None, Reflection.Assembly.Load(assemInfo.FullName)
 #endif
-            Some(assemInfo, assem)
+            Some(assem)
         with ex -> if printDetails then tracef "Unable to find assembly %A. (Error: %O)" assemInfo ex
                    None
 
@@ -213,33 +213,33 @@ let setupAssemblyResolver (context:FakeContext) =
         let strName = ev.Name
         let name = AssemblyName(strName)
 #endif
-        let tryLoadAssembly perfectMatch info =
-            match loadAssembly context.Config.PrintDetails info with
-            | Some (_, e) ->
-                if perfectMatch then
-                    if context.Config.PrintDetails then tracefn "Redirect assembly load to known assembly: %s" strName
-                else
-                    traceFAKE "Redirect assembly from '%s' to '%s'" strName e.FullName
-                  
-                e
-            | _ -> null
-          
-        match context.Config.CompileOptions.RuntimeDependencies |> List.tryFind (fun r -> r.FullName = strName) with
-        | Some a ->
-            tryLoadAssembly true a
-        | _ ->
-            let token = name.GetPublicKeyToken()
-            match context.Config.CompileOptions.RuntimeDependencies
-                  |> Seq.map (fun r -> AssemblyName(r.FullName), r)
-                  |> Seq.tryFind (fun (n, _) ->
-                      n.Name = name.Name &&
-                      (isNull token || // When null accept what we have.
-                          n.GetPublicKeyToken() = token)) with
-            | Some (_, info) ->
-                tryLoadAssembly false info
+        if context.Config.PrintDetails then tracefn "Trying to resolve: %s" strName
+        let isPerfectMatch, result =
+            match context.Config.CompileOptions.RuntimeDependencies |> List.tryFind (fun r -> r.FullName = strName) with
+            | Some a ->
+                true, loadAssembly context.Config.PrintDetails a
             | _ ->
-                if context.Config.PrintDetails then traceFAKE "Could not resolve '%s'" strName
-                null))
+                let token = name.GetPublicKeyToken()
+                match context.Config.CompileOptions.RuntimeDependencies
+                      |> Seq.map (fun r -> AssemblyName(r.FullName), r)
+                      |> Seq.tryFind (fun (n, _) ->
+                          n.Name = name.Name &&
+                          (isNull token || // When null accept what we have.
+                              n.GetPublicKeyToken() = token)) with
+                | Some (_, info) ->
+                    false, loadAssembly context.Config.PrintDetails info
+                | _ ->
+                    false, None
+        match result with
+        | Some (location, a) ->
+            if isPerfectMatch then
+                if context.Config.PrintDetails then tracefn "Redirect assembly load to known assembly: %s (%A)" strName location
+            else
+                traceFAKE "Redirect assembly from '%s' to '%s' (%A)" strName a.FullName location
+            a
+        | _ ->
+            if context.Config.PrintDetails then tracefn "Could not resolve: %s" strName
+            null))
 
 let runScriptWithCacheProvider (config:FakeConfig) (cache:ICachingProvider) =
     let newContext, cacheInfo =  prepareContext config cache

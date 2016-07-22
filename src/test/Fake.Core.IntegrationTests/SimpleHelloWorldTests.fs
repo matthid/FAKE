@@ -25,11 +25,16 @@ let ``simple runtime error``() =
         Assert.Fail ("Expected an runtime error and a nonzero exit code!")
     with e -> ()
 
-[<Ignore("relative source references are currently not supported.")>]
 [<Test>]
 let ``reference fake runtime``() = 
+  // TODO: BUG: the relative path is wrong!
     fakeRun "reference_fake-runtime.fsx" "dotnetcore-reference-fake-runtime"
 
 [<Test>]
 let ``use external paket.dependencies``() = 
     fakeRun "use_external_dependencies.fsx" "dotnetcore-use-external-paket-dependencies"
+
+[<Test>]
+let ``reference fake core targets``() = 
+  // TODO: BUG: the relative path is wrong!
+    fakeRun "reference_fake-runtime.fsx" "dotnetcore-reference-fake-core-targets"
