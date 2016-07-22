@@ -16,7 +16,8 @@ let originalScenarioPath scenario = integrationTestPath @@ scenario @@ "before"
 let prepare scenario =
     let originalScenarioPath = originalScenarioPath scenario
     let scenarioPath = scenarioTempPath scenario
-    Shell.CleanDir scenarioPath
+    Directory.Delete(scenarioPath, true)
+    Directory.ensure scenarioPath
     Shell.CopyDir scenarioPath originalScenarioPath (fun _ -> true)
 
 let directFakeInPath command scenarioPath =

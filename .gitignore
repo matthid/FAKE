@@ -69,4 +69,5 @@ paket-files/
 # Ignore VS2015 folder
 .vs/
 
+mytemp
 .fake

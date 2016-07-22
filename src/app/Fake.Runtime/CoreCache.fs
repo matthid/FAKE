@@ -176,70 +176,98 @@ let prepareContext (config:FakeConfig) (cache:ICachingProvider) =
         Hash = scriptHash }
     cache.TryLoadCache context
 
+
+
+
+#if !NETSTANDARD1_6
+type AssemblyLoadContext () =
+  member x.LoadFromAssemblyPath (loc:string) =
+    Reflection.Assembly.LoadFrom(loc)
+  member x.LoadFromAssemblyName(fullname:AssemblyName)= 
+    Reflection.Assembly.Load(fullname)
+#endif
+
+let loadAssembly (loadContext:AssemblyLoadContext) printDetails (assemInfo:AssemblyInfo) =
+    try let assem =
+            if assemInfo.Location <> "" then
+                try
+                    Some assemInfo.Location, loadContext.LoadFromAssemblyPath(assemInfo.Location)
+                with :? FileLoadException as e ->
+                    if printDetails then
+                        Trace.tracefn "Error while loading assembly: %O" e
+                    let assemblyName = new System.Reflection.AssemblyName(assemInfo.FullName)
+                    let asem = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(assemblyName.Name))
+                    if printDetails then
+                        Trace.traceFAKE "recovered and used already loaded assembly '%s' instead of '%s' ('%s')" asem.FullName assemInfo.FullName assemInfo.Location
+                    None, asem
+            else None, loadContext.LoadFromAssemblyName(new AssemblyName(assemInfo.FullName))
+        Some(assem)
+    with ex ->
+        if printDetails then tracef "Unable to find assembly %A. (Error: %O)" assemInfo ex
+        None
+
+let findAndLoadInRuntimeDeps (loadContext:AssemblyLoadContext) (name:AssemblyName) printDetails (runtimeDependencies:AssemblyInfo list) =
+    let strName = name.FullName
+    if printDetails then tracefn "Trying to resolve: %s" strName
+    let isPerfectMatch, result =
+        match runtimeDependencies |> List.tryFind (fun r -> r.FullName = strName) with
+        | Some a ->
+            true, loadAssembly loadContext printDetails a
+        | _ ->
+            let token = name.GetPublicKeyToken()
+            match runtimeDependencies
+                  |> Seq.map (fun r -> AssemblyName(r.FullName), r)
+                  |> Seq.tryFind (fun (n, _) ->
+                      n.Name = name.Name &&
+                      (isNull token || // When null accept what we have.
+                          n.GetPublicKeyToken() = token)) with
+            | Some (_, info) ->
+                false, loadAssembly loadContext printDetails info
+            | _ ->
+                false, None
+    match result with
+    | Some (location, a) ->
+        if isPerfectMatch then
+            if printDetails then tracefn "Redirect assembly load to known assembly: %s (%A)" strName location
+        else
+            traceFAKE "Redirect assembly from '%s' to '%s' (%A)" strName a.FullName location
+        a
+    | _ ->
+        if printDetails then tracefn "Could not resolve: %s" strName
+        null
+
+#if NETSTANDARD1_6
+// See https://github.com/dotnet/coreclr/issues/6411
+type FakeLoadContext (printDetails:bool, dependencies:AssemblyInfo list) =
+  inherit AssemblyLoadContext()
+  
+  override x.Load(assem:AssemblyName) =
+       findAndLoadInRuntimeDeps x assem printDetails dependencies
+#endif
+
 let setupAssemblyResolver (context:FakeContext) =
     
-#if NETSTANDARD1_5
-    let loadContext = AssemblyLoadContext.Default
-#endif
-
-    let loadAssembly printDetails (assemInfo:AssemblyInfo) =
-        try let assem =
-                if assemInfo.Location <> "" then
 #if NETSTANDARD1_6
-                    try
-                        Some assemInfo.Location, loadContext.LoadFromAssemblyPath(assemInfo.Location)
-                    with :? FileLoadException as e ->
-                        if printDetails then
-                            Trace.tracefn "Error while loading assembly: %O" e
-                        let assemblyName = new System.Reflection.AssemblyName(assemInfo.FullName)
-                        let asem = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(assemblyName.Name))
-                        if printDetails then
-                            Trace.traceFAKE "recovered and used already loaded assembly '%s' instead of '%s' ('%s')" asem.FullName assemInfo.FullName assemInfo.Location
-                        None, asem
-                else None, loadContext.LoadFromAssemblyName(new AssemblyName(assemInfo.FullName))
+    let globalLoadContext = AssemblyLoadContext.Default
+    // See https://github.com/dotnet/coreclr/issues/6411
+    let fakeLoadContext = new FakeLoadContext(context.Config.PrintDetails, context.Config.CompileOptions.RuntimeDependencies)
 #else
-                    Some assemInfo.Location, Reflection.Assembly.LoadFrom(assemInfo.Location)
-                else None, Reflection.Assembly.Load(assemInfo.FullName)
+    let loadContext = new AssemblyLoadContext()
 #endif
-            Some(assem)
-        with ex -> if printDetails then tracef "Unable to find assembly %A. (Error: %O)" assemInfo ex
-                   None
+
+
 
 #if NETSTANDARD1_6
-    loadContext.add_Resolving(new Func<AssemblyLoadContext, AssemblyName, Assembly>(fun _ name ->
+    globalLoadContext.add_Resolving(new Func<AssemblyLoadContext, AssemblyName, Assembly>(fun _ name ->
         let strName = name.FullName
+        fakeLoadContext.LoadFromAssemblyName(name)
 #else
     AppDomain.CurrentDomain.add_AssemblyResolve(new ResolveEventHandler(fun _ ev ->
         let strName = ev.Name
         let name = AssemblyName(strName)
+        findAndLoadInRuntimeDeps loadContext name context.Config.PrintDetails context.Config.CompileOptions.RuntimeDependencies
 #endif
-        if context.Config.PrintDetails then tracefn "Trying to resolve: %s" strName
-        let isPerfectMatch, result =
-            match context.Config.CompileOptions.RuntimeDependencies |> List.tryFind (fun r -> r.FullName = strName) with
-            | Some a ->
-                true, loadAssembly context.Config.PrintDetails a
-            | _ ->
-                let token = name.GetPublicKeyToken()
-                match context.Config.CompileOptions.RuntimeDependencies
-                      |> Seq.map (fun r -> AssemblyName(r.FullName), r)
-                      |> Seq.tryFind (fun (n, _) ->
-                          n.Name = name.Name &&
-                          (isNull token || // When null accept what we have.
-                              n.GetPublicKeyToken() = token)) with
-                | Some (_, info) ->
-                    false, loadAssembly context.Config.PrintDetails info
-                | _ ->
-                    false, None
-        match result with
-        | Some (location, a) ->
-            if isPerfectMatch then
-                if context.Config.PrintDetails then tracefn "Redirect assembly load to known assembly: %s (%A)" strName location
-            else
-                traceFAKE "Redirect assembly from '%s' to '%s' (%A)" strName a.FullName location
-            a
-        | _ ->
-            if context.Config.PrintDetails then tracefn "Could not resolve: %s" strName
-            null))
+        ))
 
 let runScriptWithCacheProvider (config:FakeConfig) (cache:ICachingProvider) =
     let newContext, cacheInfo =  prepareContext config cache
