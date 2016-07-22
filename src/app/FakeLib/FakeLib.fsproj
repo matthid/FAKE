@@ -208,6 +208,7 @@
     <Compile Include="LegacyApi\NuGet\Install.fs" />
     <Compile Include="LegacyApi\NuGet\NugetVersion.fs" />
     <Compile Include="LegacyApi\TestFlightHelper.fs" />
+    <Compile Include="LegacyApi\DotNetCLIHelper.fs" />
     <Compile Include="LegacyApi\DotCover.fs" />
     <Compile Include="LegacyApi\PaketHelper.fs" />
     <Compile Include="LegacyApi\PaketTemplateHelper.fs" />
