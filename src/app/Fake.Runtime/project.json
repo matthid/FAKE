@@ -40,7 +40,7 @@
     }
   },
   "dependencies": {
-    "Paket.Core.netcore": "3.4.0-alpha002"
+    "Paket.Core.netcore": "3.10.0-alpha001"
   },
   "frameworks": {
     "net46": {
