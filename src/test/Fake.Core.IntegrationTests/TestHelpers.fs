@@ -21,9 +21,10 @@ let prepare scenario =
     Directory.ensure scenarioPath
     Shell.CopyDir scenarioPath originalScenarioPath (fun _ -> true)
 
-let directFakeInPath command scenarioPath =
+let directFakeInPath command scenarioPath target =
     let result =
         Fake.ProcessHelper.ExecProcessAndReturnMessages (fun info ->
+          info.Environment.["target"] <- target
           info.FileName <- fakeToolPath
           info.WorkingDirectory <- scenarioPath
           info.Arguments <- command) (System.TimeSpan.FromMinutes 5.)
@@ -34,7 +35,7 @@ let directFakeInPath command scenarioPath =
     String.Join(Environment.NewLine,result.Messages)
 
 let directFake command scenario =
-    directFakeInPath command (scenarioTempPath scenario)
+    directFakeInPath command (scenarioTempPath scenario) null
 
 let fake command scenario =
     prepare scenario
