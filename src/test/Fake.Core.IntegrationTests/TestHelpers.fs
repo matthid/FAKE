@@ -9,14 +9,15 @@ open System
 open System.IO
 
 let fakeToolPath = Path.getFullName(__SOURCE_DIRECTORY__ + "../../../../nuget/dotnetcore/Fake.netcore/current/Fake.netcore.exe")
-let integrationTestPath = Path.getFullName(__SOURCE_DIRECTORY__ + "../../../../integrationtests/scenarios")
+let integrationTestPath = Path.getFullName(__SOURCE_DIRECTORY__ + "../../../../integrationtests")
 let scenarioTempPath scenario = integrationTestPath @@ scenario @@ "temp"
 let originalScenarioPath scenario = integrationTestPath @@ scenario @@ "before"
 
 let prepare scenario =
     let originalScenarioPath = originalScenarioPath scenario
     let scenarioPath = scenarioTempPath scenario
-    Directory.Delete(scenarioPath, true)
+    if Directory.Exists scenarioPath then
+      Directory.Delete(scenarioPath, true)
     Directory.ensure scenarioPath
     Shell.CopyDir scenarioPath originalScenarioPath (fun _ -> true)
 

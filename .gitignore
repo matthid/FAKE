@@ -55,7 +55,7 @@ tools/FSharp.Compiler.Service
 tools/FSharp.Formatting.CommandTool/
 tools/SourceLink.Fake
 /testbuild.fsx
-/integrationtests/scenarios/*/temp
+/integrationtests/*/temp
 
 release.cmd
 Samples/typescript/out/
