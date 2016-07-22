@@ -5,7 +5,7 @@ source .\..\..\..\..\..\..\nuget\dotnetcore
 nuget Fake.Runtime prerelease
 nuget Microsoft.FSharp.Core.netcore
 -- Fake Dependencies -- *)
-#load "./.fake/reference_fakelib.fsx/loadDependencies.fsx"
+#load "./.fake/reference_fake-runtime.fsx/loadDependencies.fsx"
 
 open Fake.Runtime
 

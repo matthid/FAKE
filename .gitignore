@@ -71,3 +71,4 @@ paket-files/
 
 mytemp
 .fake
+project.lock.json

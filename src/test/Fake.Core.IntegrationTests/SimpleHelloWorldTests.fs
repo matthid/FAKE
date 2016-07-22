@@ -37,4 +37,4 @@ let ``use external paket.dependencies``() =
 [<Test>]
 let ``reference fake core targets``() = 
   // TODO: BUG: the relative path is wrong!
-    fakeRun "reference_fake-runtime.fsx" "dotnetcore-reference-fake-core-targets"
+    fakeRun "reference_fake-targets.fsx" "dotnetcore-reference-fake-core-targets"
