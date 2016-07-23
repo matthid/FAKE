@@ -22,14 +22,9 @@ TBD. The current idea is:
 - Fake dotnetcore will have a new set of command line options, therefore you need to update all the places
   where you call Fake in your Build infrastructure.
 
-- The migration path will be a compatible set of reusable libraries which will be marked as obsolete.
-  They mimic the old "FakeLib".
-  In this process FakeLib will be updated with the "new" Api as well, while marking the "old" Api as obsolete.
-  Basically all you need to do is add a header to your build-file to tell Fake about your dependencies and remove `#load "FakeLib.dll"`.
-
-- Next step will be to remove everything you don't need.
-
-- Now update all packages to their latest version and use non-obsolete APIs (and fix potential breaking changes).
+- The migration path will be that "FakeLib" is updated with the new dotnetcore compatible API.
+  The old API will be marked as obsolete. 
+  In theory you can fix all warnings and switch to dotnetcore by inserting the new header.
 
 ## How to specify dependencies?
 
@@ -80,5 +75,9 @@ group Build
 
 
 ## Examples
+
+- See https://github.com/matthid/FAKE/blob/coreclr/dncbuild.fsx
+  Note that with the "new" API you should call the modules directly instead of opening them. 
+  Therefore this example is actually pretty bad because it just opened everything (for minimal diff to the "normal" build.fsx)
 
 TBD.
