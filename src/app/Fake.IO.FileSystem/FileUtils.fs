@@ -174,9 +174,14 @@ let CleanDir path =
 /// Cleans multiple directories
 let CleanDirs dirs = Seq.iter CleanDir dirs
 
+/// Compat
+let DeleteDir dir = Directory.delete dir
+
 /// Deletes multiple directories
 let DeleteDirs dirs = Seq.iter Directory.delete dirs
 
+/// Compat
+let ensureDirectory dir = Directory.ensure dir
 
 /// Appends all given files to one file.
 /// ## Parameters

@@ -248,9 +248,17 @@ let findAndLoadInRuntimeDeps (loadContext:AssemblyLoadContext) (name:AssemblyNam
 // See https://github.com/dotnet/coreclr/issues/6411
 type FakeLoadContext (printDetails:bool, dependencies:AssemblyInfo list) =
   inherit AssemblyLoadContext()
-  
+  let basePath = System.AppContext.BaseDirectory
+  let references =
+      System.IO.Directory.GetFiles(basePath, "*.dll")
+      |> Seq.filter (fun r -> not (System.IO.Path.GetFileName(r).ToLowerInvariant().StartsWith("api-ms")))
+      |> Seq.choose (fun r ->
+          try Some (AssemblyInfo.ofLocation r)
+          with e -> None)
+      |> Seq.toList
+  let allReferences = references @ dependencies
   override x.Load(assem:AssemblyName) =
-       findAndLoadInRuntimeDeps x assem printDetails dependencies
+       findAndLoadInRuntimeDeps x assem printDetails allReferences
 #endif
 
 let setupAssemblyResolver (context:FakeContext) =

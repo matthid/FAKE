@@ -130,6 +130,11 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
         if printDetails then Trace.log "Invalidating cache..."
       member __.TryLoadCache (context) =
           let references = compileAssemblies |> List.map (fun (a:ScriptRunner.AssemblyInfo) -> a.Location)
+          // TODO: Bug, Use runtime assemblies instead (currently not implemented in Paket...)!
+          let runtimeAssemblies =
+              compileAssemblies
+              |> List.filter (fun (a:ScriptRunner.AssemblyInfo) -> 
+                  not (a.Location.Contains("/ref/")))
           let fsiOpts = context.Config.CompileOptions.AdditionalArguments |> Yaaf.FSharp.Scripting.FsiOptions.ofArgs
           let newAdditionalArgs =
               { fsiOpts with
@@ -144,8 +149,7 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
                     CompileOptions =
                       { context.Config.CompileOptions with
                           AdditionalArguments = newAdditionalArgs
-                          // TODO: Bug, Use runtime assemblies instead!
-                          RuntimeDependencies = compileAssemblies @ context.Config.CompileOptions.RuntimeDependencies
+                          RuntimeDependencies = runtimeAssemblies @ context.Config.CompileOptions.RuntimeDependencies
                           CompileReferences = references @ context.Config.CompileOptions.CompileReferences
                       }
                 }

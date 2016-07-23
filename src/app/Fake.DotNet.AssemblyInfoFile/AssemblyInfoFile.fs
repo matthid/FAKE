@@ -260,13 +260,16 @@ module AssemblyInfo =
 
     /// Creates a C# AssemblyInfo file with the given attributes.
     /// The generated AssemblyInfo file contains an AssemblyVersionInformation class which can be used to retrieve the current version no. from inside of an assembly.
-    let CreateCShar outputFileName attributes = 
+    let CreateCSharp outputFileName attributes = 
         CreateCSharpWithConfig outputFileName attributes AssemblyInfoFileConfig.Default
 
     /// Creates a F# AssemblyInfo file with the given attributes.
     /// The generated AssemblyInfo file contains an AssemblyVersionInformation class which can be used to retrieve the current version no. from inside of an assembly.
     let CreateFSharp outputFileName attributes = 
         CreateFSharpWithConfig outputFileName attributes AssemblyInfoFileConfig.Default
+
+    [<System.Obsolete("Use CreateFSharp instead!")>] // added to prevent several #ifdefs in our build script.
+    let CreateFSharpAssemblyInfo outputFileName attributes = CreateFSharp outputFileName attributes
 
     /// Creates a VB AssemblyInfo file with the given attributes.
     /// The generated AssemblyInfo file contains an AssemblyVersionInformation class which can be used to retrieve the current version no. from inside of an assembly.
