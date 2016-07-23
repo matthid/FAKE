@@ -52,6 +52,7 @@ let hasExtension extension fileName = System.String.Equals(Path.GetExtension fil
 /// - 'path' - The path from which the directory is retrieved.
 let getDirectory path = Path.GetDirectoryName path
 
+/// The directory separator string. On most systems / or \
 let directorySeparator = Path.DirectorySeparatorChar.ToString()
 
 let getFullName p = Path.GetFullPath p
@@ -116,3 +117,8 @@ let toRelativeFrom =
 let toRelativeFromCurrent path =
     let currentDir = normalizeFileName <| Directory.GetCurrentDirectory()
     toRelativeFrom currentDir path
+
+/// Convert the given windows path to a path in the current system
+let convertWindowsToCurrentPath (windowsPath : string) = 
+    if (windowsPath.Length > 2 && windowsPath.[1] = ':' && windowsPath.[2] = '\\') then windowsPath
+    else windowsPath.Replace(@"\", directorySeparator)

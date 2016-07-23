@@ -247,14 +247,6 @@ module Environment =
         if Directory.Exists(TargetPlatformPrefix + "64") then Path.Combine(TargetPlatformPrefix + "64", platformVersion)
         else  Path.Combine(TargetPlatformPrefix, platformVersion)
 
-    /// The directory separator string. On most systems / or \
-    let directorySeparator = Path.DirectorySeparatorChar.ToString()
-
-    /// Convert the given windows path to a path in the current system
-    let convertWindowsToCurrentPath (windowsPath : string) = 
-        if (windowsPath.Length > 2 && windowsPath.[1] = ':' && windowsPath.[2] = '\\') then windowsPath
-        else windowsPath.Replace(@"\", directorySeparator)
-
     /// Contains the IO encoding which is given via build parameter "encoding" or the default encoding if no encoding was specified.
     let getDefaultEncoding() = 
         match environVarOrDefault "encoding" "default" with

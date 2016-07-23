@@ -3,7 +3,7 @@
 // This probably needs to stay within Fake to bootstrap?
 // Currently last file in FakeLib, until all dependencies are available in dotnetcore.
 /// .NET Core + CLI tools helpers
-module Fake.Dotnet
+module Fake.DotnetCli
 
 open Fake
 open System

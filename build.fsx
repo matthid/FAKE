@@ -322,7 +322,7 @@ Target "CreateNuGet" (fun _ ->
 )
 
 #load "src/app/Fake.Dotnet/Dotnet.fs"
-open Fake.Dotnet
+open Fake.DotnetCli
 
 Target "InstallDotnetCore" (fun _ ->
     DotnetCliInstall Preview2ToolingOptions

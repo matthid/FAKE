@@ -116,8 +116,14 @@
     <Compile Include="..\Fake.Core.Process\Process.fs">
       <Link>Fake.Core.Process/Process.fs</Link>
     </Compile>
-    <Compile Include="..\Fake.Windows.ServiceControl\ServiceControl.fs">
-      <Link>Fake.Windows.ServiceControl/ServiceControl.fs</Link>
+    <Compile Include="..\Fake.DotNet.MsBuild\MsBuildLogger.fs">
+      <Link>Fake.DotNet.MsBuild/MsBuildLogger.fs</Link>
+    </Compile>
+    <Compile Include="..\Fake.DotNet.MsBuild\MsBuild.fs">
+      <Link>Fake.DotNet.MsBuild/MsBuild.fs</Link>
+    </Compile>
+    <Compile Include="..\Fake.Tools.ServiceControl\ServiceControl.fs">
+      <Link>Fake.Tools.ServiceControl/ServiceControl.fs</Link>
     </Compile>
     <Compile Include="..\Fake.Tracing.NAntXml\NAntXmlTraceListener.fs">
       <Link>Fake.Tracing.NAntXml/NAntXmlTraceListener.fs</Link>
