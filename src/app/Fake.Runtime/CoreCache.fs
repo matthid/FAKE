@@ -77,6 +77,12 @@ module internal Cache =
         { new ICachingProvider with
             member __.CleanCache context = cleanFiles context
             member __.TryLoadCache (context) =
+                let fsiOpts = context.Config.CompileOptions.AdditionalArguments |> FsiOptions.ofArgs
+                let newAdditionalArgs =
+                    { fsiOpts with
+                        Defines =  "FAKE" :: fsiOpts.Defines }
+                    |> (fun options -> options.AsArgs)
+                    |> Seq.toList
                 let xmlFile = xmlFileName context
                 match tryLoadDefault context with
                 | Some config when File.Exists xmlFile ->
@@ -86,6 +92,7 @@ module internal Cache =
                           { context.Config with
                               CompileOptions =
                                 { context.Config.CompileOptions with
+                                    AdditionalArguments = newAdditionalArgs
                                     RuntimeDependencies = context.Config.CompileOptions.RuntimeDependencies @ readXml
                                     CompileReferences = context.Config.CompileOptions.CompileReferences @ (readXml |> List.map (fun x -> x.Location))
                                 }
@@ -143,6 +150,7 @@ module internal Cache =
                     let newAdditionalArgs =
                         { fsiOpts with
                             NoFramework = true
+                            Defines =  "DOTNETCORE" :: "FAKE" :: fsiOpts.Defines
                             Debug = Some DebugMode.Portable }
                         |> (fun options -> options.AsArgs)
                         |> Seq.toList

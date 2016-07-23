@@ -65,30 +65,6 @@ let parseHeader scriptCacheDir (f : RawFakeSection) =
     PaketDependencies (Paket.Dependencies(Path.GetFullPath file), group)
   | _ -> failwithf "unknown dependencies header '%s'" f.Header 
 
-  (*
-    Trace.log "Restoring with paket..."
-    // Check if restore is enough
-    let lockFilePath = Paket.DependenciesFile.FindLockfile paketDependencies.DependenciesFile
-    if File.Exists lockFilePath.FullName then
-      // Restore only
-      paketDependencies.Restore(false, group, [], false, true)
-      |> ignore
-    else 
-      // Update
-      paketDependencies.UpdateGroup(groupStr, false, false, false, false, false, Paket.SemVerUpdateMode.NoRestriction, false)
-      |> ignore
-
-    let lockFile = paketDependencies.GetLockFile()
-    let groupStr = match group with Some m -> m | None -> "Main"
-    let groupName = Paket.Domain.GroupName (groupStr)
-    let lockGroup = lockFile.GetGroup groupName
-    
-    let assemblies = 
-    File.WriteAllText(loadFile, "printfn \"loading dependencies... \"")
-
-  *)
-
-
 let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependencies) group =
   let groupStr = match group with Some g -> g | None -> "Main"
   let groupName = Paket.Domain.GroupName (groupStr)
@@ -158,7 +134,7 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
           let newAdditionalArgs =
               { fsiOpts with
                   NoFramework = true
-                  Defines =  "FAKE" :: fsiOpts.Defines
+                  Defines =  "DOTNETCORE" :: "FAKE" :: fsiOpts.Defines
                   Debug = Some Yaaf.FSharp.Scripting.DebugMode.Portable }
               |> (fun options -> options.AsArgs)
               |> Seq.toList
