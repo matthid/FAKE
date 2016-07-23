@@ -124,4 +124,5 @@ Note that `./Fake.netcore.exe run build.fsx` is valid (as `--script` is optional
 ## Downloads
 
 Currently Releases are on my branch: https://github.com/matthid/FAKE/releases/
+
 Alpha4 is the last known working version: https://github.com/matthid/FAKE/releases/tag/core-v1.0-alpha-04
