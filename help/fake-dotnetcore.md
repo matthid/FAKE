@@ -82,6 +82,44 @@ group Build
 
 TBD.
 
+## CLI
+
+```
+$ ./Fake.netcore.exe --help
+USAGE: fake [--help] [--version] [--verbose] [<subcommand> [<options>]]
+
+SUBCOMMANDS:
+
+    run <options>         Runs a build script.
+
+    Use 'fake <subcommand> --help' for additional information.
+
+OPTIONS:
+
+    --version             Prints the version.
+    --verbose, -v         More verbose output.
+    --help                display this list of options.
+```
+
+```
+$ ./Fake.netcore.exe run --help
+USAGE: fake run [--help] [--script <string>] [--target <string>] [--environmentvariable <string> <string>]
+                [--debug] [--singletarget] [--nocache] [--fsiargs <string>]
+
+OPTIONS:
+
+    --script <string>     Specify the script to run. (--script is optional)
+    --target, -t <string> The target to run.
+    --environmentvariable, -e <string> <string>
+                          Set an environment variable.
+    --debug, -d           Debug the script (set a breakpoint at the start).
+    --singletarget, -s    Run only the specified target.
+    --nocache, -n         Disable caching of the compiled script.
+    --fsiargs <string>    Arguments passed to the f# interactive.
+    --help                display this list of options.
+```
+
+Note that `./Fake.netcore.exe run build.fsx` is valid (as `--script` is optional.)
 
 ## Downloads
 
