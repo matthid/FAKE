@@ -1,5 +1,6 @@
 /// This module contains a file pattern globbing implementation.
 [<AutoOpen>]
+[<System.Obsolete("Open Fake.Core.Globbing.Operators instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 module Fake.FileSystem
 
 open System

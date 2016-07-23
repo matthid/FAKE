@@ -1,6 +1,6 @@
 ﻿/// Defines default listeners for build output traces
 [<AutoOpen>]
-[<System.Obsolete("use Fake.Core.Targets module instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.Core.Targets module instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 module Fake.TraceListener
 
 open System

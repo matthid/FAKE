@@ -1,5 +1,5 @@
 ﻿/// Contains functions which allow build scripts to interact with a build server.
-[<System.Obsolete("use Fake.Core.BuildServer module instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.Core.BuildServer module instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 [<AutoOpen>]
 module Fake.BuildServerHelper
 

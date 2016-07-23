@@ -1,6 +1,6 @@
 ﻿/// This module contains function which allow to trace build output
 [<AutoOpen>]
-[<System.Obsolete("use Fake.Core.Trace module instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.Core.Trace module instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 module Fake.TraceHelper
 
 open System

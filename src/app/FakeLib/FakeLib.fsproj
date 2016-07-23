@@ -101,6 +101,15 @@
     <Compile Include="..\Fake.IO.FileSystem\FileUtils.fs">
       <Link>Fake.IO.FileSystem/FileUtils.fs</Link>
     </Compile>
+    <Compile Include="..\Fake.DotNet.AssemblyInfoFile\AssemblyInfoFile.fs">
+      <Link>Fake.DotNet.AssemblyInfoFile/AssemblyInfoFile.fs</Link>
+    </Compile>
+    <Compile Include="..\Fake.Core.Globbing\Globbing.fs">
+      <Link>Fake.Core.Globbing/Globbing.fs</Link>
+    </Compile>
+    <Compile Include="..\Fake.Core.Globbing\GlobbingFileSystem.fs">
+      <Link>Fake.Core.Globbing/GlobbingFileSystem.fs</Link>
+    </Compile>
     <Compile Include="..\Fake.Core.Process\GuardedAwaitObservable.fs">
       <Link>Fake.Core.Process/GuardedAwaitObservable.fs</Link>
     </Compile>

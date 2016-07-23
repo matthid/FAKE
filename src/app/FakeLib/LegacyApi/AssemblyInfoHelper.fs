@@ -1,4 +1,5 @@
 ﻿[<AutoOpen>]
+[<System.Obsolete("Please use Fake.DotNet.AssemblyInfoFile instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 /// Generates an AssemblyInfo file
 module Fake.AssemblyInfoHelper
 

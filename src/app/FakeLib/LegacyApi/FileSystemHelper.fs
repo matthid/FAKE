@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-[<System.Obsolete("use Fake.IO.FileSystem modules instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.IO.FileSystem modules instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 /// Contains helpers which allow to interact with the file system.
 module Fake.FileSystemHelper
 

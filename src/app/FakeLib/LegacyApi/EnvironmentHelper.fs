@@ -1,5 +1,5 @@
 /// This module contains functions which allow to read and write environment variables and build parameters
-[<System.Obsolete("use Fake.Core.Environment instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.Core.Environment instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 [<AutoOpen>]
 module Fake.EnvironmentHelper
 

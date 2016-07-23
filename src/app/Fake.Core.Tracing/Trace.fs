@@ -120,37 +120,83 @@ let traceStartBuild() = CoreTracing.postMessage StartMessage
 let traceEndBuild() = CoreTracing.postMessage FinishedMessage
 
 /// Puts an opening tag on the internal tag stack
-let openTag tag description = 
+let openTagUnsafe tag description =
     openTags.Value <- tag :: openTags.Value
     OpenTag(tag, description) |> CoreTracing.postMessage
 
+let private asSafeDisposable f =
+    let mutable isDisposed = false
+    { new System.IDisposable with
+        member __.Dispose () = 
+            if not isDisposed then
+              isDisposed <- true
+              f() }
+
+/// Puts an opening tag on the internal tag stack
+[<System.Obsolete("Consider using traceTag instead and 'use' to properly call closeTag in case of exceptions. To remove this warning use 'openTagUnsafe'.")>]
+let openTag tag description = openTagUnsafe tag description
+
 /// Removes an opening tag from the internal tag stack
-let closeTag tag = 
+let closeTagUnsafe tag =
     match openTags.Value with
     | x :: rest when x = tag -> openTags.Value <- rest
     | _ -> failwithf "Invalid tag structure. Trying to close %A tag but stack is %A" tag openTags
     CloseTag tag |> CoreTracing.postMessage
 
-let closeAllOpenTags() = Seq.iter closeTag openTags.Value
+/// Removes an opening tag from the internal tag stack
+[<System.Obsolete("Consider using traceTag instead and 'use' to properly call closeTag in case of exceptions. To remove this warning use 'closeTagUnsafe'.")>]
+let closeTag tag = closeTagUnsafe tag
+
+let traceTag tag description =
+    openTagUnsafe tag description
+    asSafeDisposable (fun () -> closeTagUnsafe tag)
+
+
+let closeAllOpenTags() = Seq.iter closeTagUnsafe openTags.Value
 
 /// Traces the begin of a target
-let traceStartTarget name description dependencyString =
-    openTag (Target name) description
+let traceStartTargetUnsafe name description dependencyString =
+    openTagUnsafe (Target name) description
     tracefn "Starting Target: %s %s" name dependencyString
     if not (isNull description) then tracefn "  %s" description
 
-/// Traces the end of a target   
-let traceEndTarget name = 
+/// Traces the begin of a target
+[<System.Obsolete("Consider using traceTarget instead and 'use' to properly call traceEndTask in case of exceptions. To remove this warning use 'traceStartTargetUnsafe'.")>]
+let traceStartTarget name description dependencyString =
+    traceStartTargetUnsafe name description dependencyString
+
+/// Traces the end of a target
+let traceEndTargetUnsafe name = 
     tracefn "Finished Target: %s" name
-    closeTag (Target name)
+    closeTagUnsafe (Target name)
+
+/// Traces the end of a target
+[<System.Obsolete("Consider using traceTarget instead and 'use' to properly call traceEndTask in case of exceptions. To remove this warning use 'traceEndTargetUnsafe'.")>]
+let traceEndTarget name = traceEndTargetUnsafe name
+
+let traceTarget name description dependencyString =
+    traceStartTargetUnsafe name description dependencyString
+    asSafeDisposable (fun () -> traceEndTargetUnsafe name )
 
 /// Traces the begin of a task
-let traceStartTask task description = 
-    openTag (Task task) description
+let traceStartTaskUnsafe task description = 
+    openTagUnsafe (Task task) description
+
+/// Traces the begin of a task
+[<System.Obsolete("Consider using traceTask instead and 'use' to properly call traceEndTask in case of exceptions. To remove this warning use 'traceStartTaskUnsafe'.")>]
+let traceStartTask task description = traceStartTaskUnsafe task description
 
 /// Traces the end of a task
-let traceEndTask task = 
-    closeTag (Task task)
+let traceEndTaskUnsafe task = 
+    closeTagUnsafe (Task task)
+   
+/// Traces the end of a task
+[<System.Obsolete("Consider using traceTask instead and 'use' to properly call traceEndTask in case of exceptions. To remove this warning use 'traceEndTask'.")>]
+let traceEndTask task = traceEndTaskUnsafe task
+     
+let traceTask name description =
+    traceStartTaskUnsafe name description
+    asSafeDisposable (fun () -> traceEndTaskUnsafe name)
 
 let console = new ConsoleTraceListener(false, CoreTracing.colorMap) :> ITraceListener
 

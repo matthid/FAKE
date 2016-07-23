@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-[<System.Obsolete("use Fake.Core.Process instead. Do not use `open Fake` anymore!")>]
+[<System.Obsolete("use Fake.Core.Process instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 /// Contains functions which can be used to start other tools.
 module Fake.ProcessHelper
 

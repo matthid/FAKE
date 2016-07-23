@@ -495,12 +495,11 @@ module Targets =
     let runSingleTarget (target : TargetTemplate<unit>) =
         try
             if List.isEmpty (GetErrors()) then
-                Trace.traceStartTarget target.Name target.Description (dependencyString target)
+                use t = Trace.traceTarget target.Name target.Description (dependencyString target)
                 let watch = new System.Diagnostics.Stopwatch()
                 watch.Start()
                 target.Function()
                 addExecutedTarget target.Name watch.Elapsed
-                Trace.traceEndTarget target.Name
         with exn ->
             targetError target.Name exn
 

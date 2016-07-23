@@ -1,6 +1,5 @@
 /// This module contains a file pattern globbing implementation.
-[<System.Obsolete("Use Fake.Core.Globbing.Glob instead")>]
-module Fake.Globbing
+module Fake.Core.Globbing.Glob
 
 open System
 open System.Collections.Generic
@@ -140,7 +139,7 @@ let internal compileGlobToRegex pattern =
 
     Regex(regexPattern)
 
-let globRegexCache = System.Collections.Concurrent.ConcurrentDictionary<string, Regex>()
+let private globRegexCache = System.Collections.Concurrent.ConcurrentDictionary<string, Regex>()
 
 let isMatch pattern path : bool = 
     let path = normalizePath path
