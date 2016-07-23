@@ -101,6 +101,15 @@
     <Compile Include="..\Fake.IO.FileSystem\FileUtils.fs">
       <Link>Fake.IO.FileSystem/FileUtils.fs</Link>
     </Compile>
+    <Compile Include="..\Fake.Core.Process\GuardedAwaitObservable.fs">
+      <Link>Fake.Core.Process/GuardedAwaitObservable.fs</Link>
+    </Compile>
+    <Compile Include="..\Fake.Core.Process\Process.fs">
+      <Link>Fake.Core.Process/Process.fs</Link>
+    </Compile>
+    <Compile Include="..\Fake.Windows.ServiceControl\ServiceControl.fs">
+      <Link>Fake.Windows.ServiceControl/ServiceControl.fs</Link>
+    </Compile>
     <Compile Include="..\Fake.Tracing.NAntXml\NAntXmlTraceListener.fs">
       <Link>Fake.Tracing.NAntXml/NAntXmlTraceListener.fs</Link>
     </Compile>
@@ -120,7 +129,6 @@
     <Compile Include="LegacyApi\TeamCityRESTHelper.fs" />
     <Compile Include="LegacyApi\TraceHelper.fs" />
     <Compile Include="LegacyApi\ServiceControllerHelper.fs" />
-    <Compile Include="LegacyApi\GuardedAwaitObservable.fs" />
     <Compile Include="LegacyApi\ProcessHelper.fs" />
     <Compile Include="LegacyApi\PsExecHelper.fs" />
     <Compile Include="LegacyApi\NpmHelper.fs" />

@@ -127,11 +127,8 @@ module Environment =
     /// Returns the value of the build parameter with the given name if it was set and otherwise an empty string
     let inline getBuildParam name = getBuildParamOrDefault name String.Empty
 
-    #if !DOTNETCORE
-    [<Obsolete("Will no longer be available in dotnetcore, target package is currently unknown")>]
     /// The path of the "Program Files" folder - might be x64 on x64 machine
     let ProgramFiles = Environment.GetFolderPath Environment.SpecialFolder.ProgramFiles
-    #endif
 
     /// The path of Program Files (x86)
     /// It seems this covers all cases where PROCESSOR\_ARCHITECTURE may misreport and the case where the other variable 
@@ -206,31 +203,19 @@ module Environment =
     #else
         false
     #endif
+    
+
+    /// Gets the list of valid directories included in the PATH environment variable.
+    let pathDirectories =
+        splitEnvironVar "PATH"
+        |> Seq.map (fun value -> value.Trim())
+        |> Seq.filter (not << String.IsNullOrEmpty)
 
     let monoPath =
         if isMacOS && File.Exists "/Library/Frameworks/Mono.framework/Commands/mono" then
             "/Library/Frameworks/Mono.framework/Commands/mono"
         else
             "mono"
-
-    /// Arguments on the Mono executable
-    let mutable monoArguments = ""
-
-
-#if !DOTNETCORE
-    /// The path to the personal documents
-    [<Obsolete("Will no longer be available in dotnetcore, it will probably be moved to Fake.Process")>]
-    let documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-#endif
-
-#if !DOTNETCORE
-    [<Obsolete("Will no longer be available in dotnetcore, it will probably be moved to Fake.Process")>]
-    /// Modifies the ProcessStartInfo according to the platform semantics
-    let platformInfoAction (psi : ProcessStartInfo) = 
-        if isMono && psi.FileName.EndsWith ".exe" then 
-            psi.Arguments <- monoArguments + " \"" + psi.FileName + "\" " + psi.Arguments
-            psi.FileName <- monoPath
-#endif
 
     /// The path of the current target platform
     let mutable TargetPlatformPrefix = 

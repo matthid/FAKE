@@ -97,8 +97,6 @@ let mutable AutoCloseXmlWriter = false
 /// A List with all registered listeners
 let listeners = new Collections.Generic.List<ITraceListener>()
 
-#if !CORE_CLR
-
 /// Implements a TraceListener which writes NAnt like XML files.
 /// ## Parameters
 ///  - `xmlOutputFile` - Defines the xml output file.
@@ -144,14 +142,10 @@ type NAntXmlTraceListener(xmlOutputFile) =
 /// Allows to register a new Xml listeners
 let addXmlListener xmlOutputFile = listeners.Add(new NAntXmlTraceListener(xmlOutputFile))
 
-#endif
-
 // register listeners
 listeners.Add defaultConsoleTraceListener
 
-#if !CORE_CLR
 if hasBuildParam "logfile" || buildServer = CCNet then addXmlListener xmlOutputFile
-#endif
 
 /// Allows to post messages to all trace listeners
 let postMessage x = listeners.ForEach(fun listener -> listener.Write x)

@@ -4,7 +4,7 @@ open Fake.Runtime.Environment
 open Fake.Runtime.Trace
 open Fake.Runtime.ScriptRunner
 open Fake.Runtime.HashGeneration
-#if NETSTANDARD1_5
+#if NETSTANDARD1_6
 open System.Runtime.Loader
 #endif
 

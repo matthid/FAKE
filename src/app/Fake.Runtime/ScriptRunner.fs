@@ -2,7 +2,7 @@
 module Fake.Runtime.ScriptRunner
 open Fake.Runtime.Environment
 open Fake.Runtime.Trace
-#if NETSTANDARD1_5
+#if NETSTANDARD1_6
 open System.Runtime.Loader
 #endif
 
@@ -180,8 +180,10 @@ let tryRunCached (c:CoreCacheInfo) (context:FakeContext) : Exception option =
     if context.Config.PrintDetails then trace "Using cache"
     let exampleName, _, parseName = nameParser context.Config.ScriptFilePath
     
+    use execContext = Fake.Core.Context.FakeExecutionContext.Create true context.Config.ScriptFilePath []
+    Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake execContext)
     Yaaf.FSharp.Scripting.Helper.consoleCapture context.Config.Out context.Config.Err (fun () ->
-#if NETSTANDARD1_5
+#if NETSTANDARD1_6
         let loadContext = AssemblyLoadContext.Default
         let ass = loadContext.LoadFromAssemblyPath(c.CompiledAssembly)
 #else
@@ -244,6 +246,8 @@ let runUncached (context:FakeContext) : ResultCoreCacheInfo * Exception option =
 *)
     // Contains warnings and errors about the build script.
     let fsiErrorOutput = new System.Text.StringBuilder()
+    use execContext = Fake.Core.Context.FakeExecutionContext.Create false context.Config.ScriptFilePath []
+    Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake execContext)
     let session =
       try ScriptHost.Create
             (options, preventStdOut = true,

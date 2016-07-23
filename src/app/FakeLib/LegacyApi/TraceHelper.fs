@@ -12,11 +12,7 @@ type FAKEException(msg) =
     inherit System.Exception(msg)
 
 /// Gets the path of the current FAKE instance
-#if !CORE_CLR
 let fakePath = productName.GetType().Assembly.Location
-#else
-let fakePath = productName.GetType().GetTypeInfo().Assembly.Location
-#endif
 
 /// Gets the FAKE version no.
 let fakeVersion = AssemblyVersionInformation.Version
@@ -101,15 +97,10 @@ let traceException (ex:Exception) = exceptionAndInnersToString ex |> traceError
 
 /// Traces the EnvironmentVariables
 let TraceEnvironmentVariables() = 
-#if !CORE_CLR
     [ EnvironTarget.Machine; EnvironTarget.Process; EnvironTarget.User ] 
     |> Seq.iter (fun mode -> 
            tracefn "Environment-Settings (%A):" mode
            environVars mode |> Seq.iter (tracefn "  %A"))
-#else
-    tracefn "Environment-Settings (%A):" "Process"
-    environVars () |> Seq.iter (tracefn "  %A")
-#endif
 
 /// Gets the FAKE Version string
 let fakeVersionStr = sprintf "FAKE - F# Make %A" fakeVersion
@@ -144,10 +135,8 @@ let closeAllOpenTags() = Seq.iter closeTag openTags.Value
 
 /// Traces the begin of a target
 let traceStartTarget name description dependencyString =
-#if !CORE_CLR
     sendOpenBlock name
     ReportProgressStart <| sprintf "Target: %s" name
-#endif
     openTag "target"
     OpenTag("target", name) |> postMessage
     tracefn "Starting Target: %s %s" name dependencyString
@@ -157,36 +146,24 @@ let traceStartTarget name description dependencyString =
 let traceEndTarget name = 
     tracefn "Finished Target: %s" name
     closeTag "target"
-#if !CORE_CLR
     ReportProgressFinish <| sprintf "Target: %s" name
     sendCloseBlock name
-#endif
 
 /// Traces the begin of a task
 let traceStartTask task description = 
     openTag "task"
     OpenTag("task", task) |> postMessage
-#if !CORE_CLR
     ReportProgressStart <| sprintf "Task: %s %s" task description
-#endif
 
 /// Traces the end of a task
 let traceEndTask task description = 
     closeTag "task"
-#if !CORE_CLR
     ReportProgressFinish <| sprintf "Task: %s %s" task description
-#endif
 
 let console = new ConsoleTraceListener(false, colorMap) :> ITraceListener
 
 open System.Diagnostics
-#if CORE_CLR
-type EventLogEntryType =
-  | Error
-  | Information
-  | Warning
-  | Other
-#endif
+
 /// Traces the message to the console
 let logToConsole (msg, eventLogEntry : EventLogEntryType) = 
     match eventLogEntry with

@@ -25,17 +25,25 @@ type private DependencyType =
 
 module Targets =
     /// [omit]
-    let mutable PrintStackTraceOnError = false
-
+    //let mutable PrintStackTraceOnError = false
+    let private printStackTraceOnErrorVar = "Fake.Core.Targets.PrintStackTraceOnError"
+    let private getPrintStackTraceOnError, _, (setPrintStackTraceOnError:bool -> unit) = 
+        Fake.Core.Context.fakeVar printStackTraceOnErrorVar
+    
     /// [omit]
-    let mutable LastDescription = null
+    //let mutable LastDescription = null
+    let private lastDescriptionVar = "Fake.Core.Targets.LastDescription"
+    let private getLastDescription, removeLastDescription, setLastDescription = 
+        Fake.Core.Context.fakeVar lastDescriptionVar
 
     /// Sets the Description for the next target.
     /// [omit]
     let Description text =
-        if not <| isNull LastDescription then
-            failwithf "You can't set the description for a target twice. There is already a description: %A" LastDescription
-        LastDescription <- text
+        match getLastDescription() with
+        | Some (v:string) ->
+            failwithf "You can't set the description for a target twice. There is already a description: %A" v
+        | None ->
+           setLastDescription text
 
     /// TargetDictionary
     /// [omit]
@@ -197,7 +205,7 @@ module Targets =
               template.Function parameters })
 
         name <== template.Dependencies
-        LastDescription <- null
+        removeLastDescription()
 
     /// Creates a TargetTemplate with dependencies.
     ///
@@ -243,7 +251,7 @@ module Targets =
             { Name = String.Empty
               Dependencies = dependencies
               SoftDependencies = []
-              Description = LastDescription
+              Description = match getLastDescription() with Some d -> d | None -> null
               Function = body }
         targetFromTemplate template name parameters
 
@@ -261,20 +269,26 @@ module Targets =
         Target : string
         Message : string }
 
-    let mutable private errors = []
+    //let mutable private errors = []
+    let private errorsVar = "Fake.Core.Targets.errors"
+    let private getErrors, removeErrors, setErrors = 
+        Fake.Core.Context.fakeVar errorsVar
 
     /// Get Errors - Returns the errors that occured during execution
-    let GetErrors() = errors
+    let GetErrors() = 
+      match getErrors () with
+      | Some e -> e
+      | None -> []
 
     /// [omit]
     let targetError targetName (exn:System.Exception) =
         Trace.closeAllOpenTags()
-        errors <-
-            match exn with
+        setErrors
+            (match exn with
                 //| BuildException(msg, errs) ->
                 //    let errMsgs = errs |> List.map(fun e -> { Target = targetName; Message = e })
                 //    { Target = targetName; Message = msg } :: (errMsgs @ errors)
-                | _ -> { Target = targetName; Message = exn.ToString() } :: errors
+                | _ -> { Target = targetName; Message = exn.ToString() } :: GetErrors())
         let error e =
             match e with
             //| BuildException(msg, errs) -> msg + (if PrintStackTraceOnError then Environment.NewLine + e.StackTrace.ToString() else "")
@@ -399,7 +413,7 @@ module Targets =
     /// Writes a summary of errors reported during build.
     let WriteErrors () =
         Trace.traceLine()
-        errors
+        GetErrors()
         |> Seq.mapi(fun i e -> sprintf "%3d) %s" (i + 1) e.Message)
         |> Seq.iter Trace.traceError
 
@@ -425,7 +439,7 @@ module Targets =
                     aligned t.Name time)
 
             aligned "Total:" total
-            if List.isEmpty errors then aligned "Status:" "Ok"
+            if List.isEmpty (GetErrors()) then aligned "Status:" "Ok"
             else
                 alignedError "Status:" "Failure"
                 WriteErrors()
@@ -480,7 +494,7 @@ module Targets =
     /// Runs a single target without its dependencies
     let runSingleTarget (target : TargetTemplate<unit>) =
         try
-            if List.isEmpty errors then
+            if List.isEmpty (GetErrors()) then
                 Trace.traceStartTarget target.Name target.Description (dependencyString target)
                 let watch = new System.Diagnostics.Stopwatch()
                 watch.Start()
@@ -503,16 +517,22 @@ module Targets =
         //    .ToArray()
         |> ignore
 
-    let mutable CurrentTargetOrder = []
+    //let mutable CurrentTargetOrder = []
+    
+    let private currentTargetOrderVar = "Fake.Core.Targets.CurrentTargetOrder"
+    let private getCurrentTargetOrder, removeCurrentTargetOrder, setCurrentTargetOrder = 
+        Fake.Core.Context.fakeVar currentTargetOrderVar
 
     /// Runs a target and its dependencies.
     let run targetName =
         if doesTargetMeanListTargets targetName then listTargets() else
-        if not <| isNull LastDescription then failwithf "You set a task description (%A) but didn't specify a task." LastDescription
+        match getLastDescription() with
+        | Some d -> failwithf "You set a task description (%A) but didn't specify a task." d
+        | None -> ()
 
         let rec runTargets (targets: TargetTemplate<unit> array) =
             let lastTarget = targets |> Array.last
-            if errors = [] && ExecutedTargets.Contains (lastTarget.Name) |> not then
+            if List.isEmpty (GetErrors()) && ExecutedTargets.Contains (lastTarget.Name) |> not then
                let firstTarget = targets |> Array.head
                if Environment.hasEnvironVar "single-target" then
                    Trace.traceImportant "Single target mode ==> Skipping dependencies."
@@ -534,9 +554,9 @@ module Targets =
                 // determine a parallel build order
                 let order = determineBuildOrder targetName
 
-                CurrentTargetOrder <-
-                    order
-                    |> List.map (Array.map (fun t -> t.Name) >> Array.toList)
+                order
+                |> List.map (Array.map (fun t -> t.Name) >> Array.toList)
+                |> setCurrentTargetOrder
 
                 // run every level in parallel
                 for par in order do
@@ -550,15 +570,18 @@ module Targets =
                 // for a single threaded build (thereby centralizing the algorithm for build order), but that
                 // ordering is inconsistent with earlier versions of FAKE (and PrintDependencyGraph).
                 let _, ordered = visitDependencies ignore targetName
-                CurrentTargetOrder <- ordered |> Seq.map (fun t -> [t]) |> Seq.toList
+
+                ordered
+                |> Seq.map (fun t -> [t]) 
+                |> Seq.toList
+                |> setCurrentTargetOrder
 
                 runTargets (ordered |> Seq.map getTarget |> Seq.toArray)
 
         finally
-            if errors <> [] then
+            if (GetErrors()) <> [] then
                 runBuildFailureTargets()
             runFinalTargets()
-            //killAllCreatedProcesses()
             WriteTaskTimeSummary watch.Elapsed
             //changeExitCodeIfErrorOccured()
 

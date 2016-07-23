@@ -43,7 +43,8 @@
     "netstandard1.6": {
       "buildOptions": {
         "define": [
-          "NETSTANDARD1_5"
+          "FX_NO_REMOTING",
+          "USE_ASYNC_LOCAL"
         ]
       },
       "imports": [

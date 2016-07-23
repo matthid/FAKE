@@ -1,6 +1,5 @@
-﻿[<AutoOpen>]
-/// Contains functions which can be used to start other tools.
-module Fake.ProcessHelper
+﻿/// Contains functions which can be used to start other tools.
+module Fake.Core.Process
 
 open System
 open System.ComponentModel
@@ -9,24 +8,115 @@ open System.IO
 open System.Threading
 open System.Text
 open System.Collections.Generic
-open System.ServiceProcess
+open Fake.IO.FileSystem
+open Fake.IO.FileSystem.Operators
+open Fake.Core.GuardedAwaitObservable
+
+/// Kills the given process
+let kill (proc : Process) = 
+    Trace.tracefn "Trying to kill process %s (Id = %d)" proc.ProcessName proc.Id
+    try 
+        proc.Kill()
+    with exn -> ()
+
+let private killCreatedProcessesVar = "Fake.Core.Process.killCreatedProcesses"
+let private getKillCreatedProcesses, _, public setKillCreatedProcesses = 
+    Fake.Core.Context.fakeVarAllowNoContext killCreatedProcessesVar
+let shouldKillCreatedProcesses () =
+    match getKillCreatedProcesses() with
+    | Some v -> v
+    | None ->
+      let shouldEnable = Fake.Core.Context.isFakeContext()
+      setKillCreatedProcesses shouldEnable
+      shouldEnable
+
+type ProcessList() =
+    let startedProcesses = HashSet()
+    let killProcesses () = 
+        let traced = ref false
+        
+        for pid, startTime in startedProcesses do
+            try
+                let proc = Process.GetProcessById pid
+                
+                // process IDs may be reused by the operating system so we need
+                // to make sure the process is indeed the one we started
+                if proc.StartTime = startTime && not proc.HasExited then
+                    try 
+                        if not !traced then
+                          Trace.tracefn "Killing all processes that are created by FAKE and are still running."
+                          traced := true
+
+                        Trace.logfn "Trying to kill %s" proc.ProcessName
+                        kill proc
+                    with exn -> Trace.logfn "Killing %s failed with %s" proc.ProcessName exn.Message                              
+            with exn -> ()
+        startedProcesses.Clear()
+    member x.KillAll() = killProcesses()
+    member x.Add (pid, startTime) = startedProcesses.Add(pid, startTime)
+    
+    interface IDisposable with
+        member x.Dispose() =
+            if shouldKillCreatedProcesses() then killProcesses()
 
 /// [omit]
-let startedProcesses = HashSet()
+//let startedProcesses = HashSet()
+let private startedProcessesVar = "Fake.Core.Process.startedProcesses"
+let private getStartedProcesses, _, private setStartedProcesses = 
+    Fake.Core.Context.fakeVar startedProcessesVar
+let private addStartedProcess (id:int, startTime:System.DateTime) =
+    match getStartedProcesses () with
+    | Some (h:ProcessList) -> h.Add(id, startTime)
+    | None -> 
+        let h = new ProcessList()
+        setStartedProcesses (h)
+        h.Add(id, startTime)
+
+let private monoArgumentsVar = "Fake.Core.Process.monoArguments"
+let private tryGetMonoArguments, _, public setMonoArguments = 
+    Fake.Core.Context.fakeVar monoArgumentsVar
+let getMonoArguments () =
+    match tryGetMonoArguments () with
+    | Some (args) -> args
+    | None -> ""
+
+/// Modifies the ProcessStartInfo according to the platform semantics
+let platformInfoAction (psi : ProcessStartInfo) = 
+    if Environment.isMono && psi.FileName.EndsWith ".exe" then 
+        psi.Arguments <- getMonoArguments() + " \"" + psi.FileName + "\" " + psi.Arguments
+        psi.FileName <- Environment.monoPath
 
 /// [omit]
 let start (proc : Process) = 
-    if isMono && proc.StartInfo.FileName.ToLowerInvariant().EndsWith(".exe") then
-        proc.StartInfo.Arguments <- "--debug \"" + proc.StartInfo.FileName + "\" " + proc.StartInfo.Arguments
-        proc.StartInfo.FileName <- monoPath
+    platformInfoAction proc.StartInfo
     proc.Start() |> ignore
-    startedProcesses.Add(proc.Id, proc.StartTime) |> ignore
+    addStartedProcess(proc.Id, proc.StartTime) |> ignore
 
 /// [omit]
-let mutable redirectOutputToTrace = false
+//let mutable redirectOutputToTrace = false
+let private redirectOutputToTraceVar = "Fake.Core.Process.redirectOutputToTrace"
+let private tryGetRedirectOutputToTrace, _, public setRedirectOutputToTrace = 
+    Fake.Core.Context.fakeVarAllowNoContext redirectOutputToTraceVar
+let getRedirectOutputToTrace () =
+    match tryGetRedirectOutputToTrace() with
+    | Some v -> v
+    | None ->
+      let shouldEnable = false
+      setRedirectOutputToTrace shouldEnable
+      shouldEnable
 
 /// [omit]
-let mutable enableProcessTracing = true
+//let mutable enableProcessTracing = true
+let private enableProcessTracingVar = "Fake.Core.Process.enableProcessTracing"
+let private getEnableProcessTracing, private removeEnableProcessTracing, public setEnableProcessTracing = 
+    Fake.Core.Context.fakeVarAllowNoContext enableProcessTracingVar
+let shouldEnableProcessTracing () =
+    match getEnableProcessTracing() with
+    | Some v -> v
+    | None ->
+      let shouldEnable = Fake.Core.Context.isFakeContext()
+      setEnableProcessTracing shouldEnable
+      shouldEnable
 
 /// A record type which captures console messages
 type ConsoleMessage = 
@@ -45,6 +135,7 @@ type ProcessResult =
           Messages = messages
           Errors = errors }
 
+
 /// Runs the given process and returns the exit code.
 /// ## Parameters
 ///
@@ -58,23 +149,23 @@ let ExecProcessWithLambdas configProcessStartInfoF (timeOut : TimeSpan) silent e
     proc.StartInfo.UseShellExecute <- false
     configProcessStartInfoF proc.StartInfo
     platformInfoAction proc.StartInfo
-    if isNullOrEmpty proc.StartInfo.WorkingDirectory |> not then 
+    if String.isNullOrEmpty proc.StartInfo.WorkingDirectory |> not then 
         if Directory.Exists proc.StartInfo.WorkingDirectory |> not then 
             failwithf "Start of process %s failed. WorkingDir %s does not exist." proc.StartInfo.FileName 
                 proc.StartInfo.WorkingDirectory
     if silent then 
         proc.StartInfo.RedirectStandardOutput <- true
         proc.StartInfo.RedirectStandardError <- true
-        if isMono then
+        if Environment.isMono then
             proc.StartInfo.StandardOutputEncoding <- Encoding.UTF8
             proc.StartInfo.StandardErrorEncoding  <- Encoding.UTF8
         proc.ErrorDataReceived.Add(fun d -> 
-            if d.Data <> null then errorF d.Data)
+            if isNull d.Data |> not then errorF d.Data)
         proc.OutputDataReceived.Add(fun d -> 
-            if d.Data <> null then messageF d.Data)
+            if isNull d.Data |> not then messageF d.Data)
     try 
-        if enableProcessTracing && (not <| proc.StartInfo.FileName.EndsWith "fsi.exe") then 
-            tracefn "%s %s" proc.StartInfo.FileName proc.StartInfo.Arguments
+        if shouldEnableProcessTracing() && (not <| proc.StartInfo.FileName.EndsWith "fsi.exe") then 
+            Trace.tracefn "%s %s" proc.StartInfo.FileName proc.StartInfo.Arguments
         start proc
     with exn -> failwithf "Start of process %s failed. %s" proc.StartInfo.FileName exn.Message
     if silent then 
@@ -86,7 +177,7 @@ let ExecProcessWithLambdas configProcessStartInfoF (timeOut : TimeSpan) silent e
             try 
                 proc.Kill()
             with exn -> 
-                traceError 
+                Trace.traceError 
                 <| sprintf "Could not kill process %s  %s after timeout." proc.StartInfo.FileName 
                        proc.StartInfo.Arguments
             failwithf "Process %s %s timed out." proc.StartInfo.FileName proc.StartInfo.Arguments
@@ -130,37 +221,6 @@ let ExecProcessRedirected configProcessStartInfoF timeOut =
 ///
 ///  - `configProcessStartInfoF` - A function which overwrites the default ProcessStartInfo.
 ///  - `timeOut` - The timeout for the process.
-///  - `silent` - If this flag is set then the process output is redicted to the trace.
-/// [omit]
-[<Obsolete("Please use the new ExecProcess.")>]
-let execProcess2 configProcessStartInfoF timeOut silent = 
-    ExecProcessWithLambdas configProcessStartInfoF timeOut silent traceError trace
-
-/// Runs the given process and returns the exit code.
-/// ## Parameters
-///
-///  - `configProcessStartInfoF` - A function which overwrites the default ProcessStartInfo.
-///  - `timeOut` - The timeout for the process.
-/// [omit]
-[<Obsolete("Please use the new ExecProcess.")>]
-let execProcessAndReturnExitCode configProcessStartInfoF timeOut = 
-    ExecProcessWithLambdas configProcessStartInfoF timeOut true traceError trace
-
-/// Runs the given process and returns if the exit code was 0.
-/// ## Parameters
-///
-///  - `configProcessStartInfoF` - A function which overwrites the default ProcessStartInfo.
-///  - `timeOut` - The timeout for the process.
-/// [omit]
-[<Obsolete("Please use the new ExecProcess.")>]
-let execProcess3 configProcessStartInfoF timeOut = 
-    ExecProcessWithLambdas configProcessStartInfoF timeOut true traceError trace = 0
-
-/// Runs the given process and returns the exit code.
-/// ## Parameters
-///
-///  - `configProcessStartInfoF` - A function which overwrites the default ProcessStartInfo.
-///  - `timeOut` - The timeout for the process.
 /// ## Sample
 ///
 ///     let result = ExecProcess (fun info ->  
@@ -170,7 +230,7 @@ let execProcess3 configProcessStartInfoF timeOut =
 ///     
 ///     if result <> 0 then failwithf "MyProc.exe returned with a non-zero exit code"
 let ExecProcess configProcessStartInfoF timeOut = 
-    ExecProcessWithLambdas configProcessStartInfoF timeOut redirectOutputToTrace traceError trace
+    ExecProcessWithLambdas configProcessStartInfoF timeOut (getRedirectOutputToTrace()) Trace.traceError Trace.trace
 
 /// Runs the given process in an elevated context and returns the exit code.
 /// ## Parameters
@@ -178,27 +238,28 @@ let ExecProcess configProcessStartInfoF timeOut =
 ///  - `cmd` - The command which should be run in elavated context.
 ///  - `args` - The process arguments.
 ///  - `timeOut` - The timeout for the process.
+[<Obsolete("This is currently no possible in dotnetcore")>]
 let ExecProcessElevated cmd args timeOut = 
-    ExecProcess (fun si -> 
+    ExecProcess (fun si ->
+#if !NETSTANDARD
         si.Verb <- "runas"
+#endif
         si.Arguments <- args
         si.FileName <- cmd
         si.UseShellExecute <- true) timeOut
 
-/// Gets the list of valid directories included in the PATH environment variable.
-let pathDirectories =
-    splitEnvironVar "PATH"
-    |> Seq.map (fun value -> value.Trim())
-    |> Seq.filter (fun value -> not <| isNullOrEmpty value)
-    |> Seq.filter isValidPath
-
 /// Sets the environment Settings for the given startInfo.
 /// Existing values will be overriden.
 /// [omit]
-let setEnvironmentVariables (startInfo : ProcessStartInfo) environmentSettings = 
+let setEnvironmentVariables (startInfo : ProcessStartInfo) environmentSettings =
+#if NETSTANDARD
+    let envDict = startInfo.Environment
+#else
+    let envDict = startInfo.EnvironmentVariables
+#endif
     for key, value in environmentSettings do
-        if startInfo.EnvironmentVariables.ContainsKey key then startInfo.EnvironmentVariables.[key] <- value
-        else startInfo.EnvironmentVariables.Add(key, value)
+        if envDict.ContainsKey key then envDict.[key] <- value
+        else envDict.Add(key, value)
 
 /// Runs the given process and returns true if the exit code was 0.
 /// [omit]
@@ -231,43 +292,6 @@ let StartProcess configProcessStartInfoF =
     configProcessStartInfoF proc.StartInfo
     start proc
 
-/// Sends a command to a remote windows service.
-let RunRemoteService command host serviceName =
-    let host, address =
-        match host with
-        | "." -> Environment.MachineName, ""
-        | _ -> host, @"\\" + host
-    tracefn "%s %s on %s" command serviceName host
-    if not <| directExec (fun p ->
-        p.FileName <- "sc"
-        p.Arguments <- sprintf @"%s %s %s" address command serviceName
-        p.RedirectStandardOutput <- true
-    ) then failwith "Failed to send command to service."
-
-/// Sends a command to a local windows service.
-let RunService command serviceName =
-    RunRemoteService command "." serviceName
-
-/// Stops a local windows service. Waits up to two minutes for a response.
-let StopService serviceName =
-    stopService serviceName
-    ensureServiceHasStopped serviceName (TimeSpan.FromMinutes 2.)
-
-/// Stops a remote windows service. Waits up to two minutes for a response.
-let StopRemoteService host serviceName =
-    stopRemoteService host serviceName
-    ensureRemoteServiceHasStopped host serviceName (TimeSpan.FromMinutes 2.)
-
-/// Starts a local windows service. Waits up to two minutes for a response.
-let StartService serviceName =
-    startService serviceName
-    ensureServiceHasStarted serviceName (TimeSpan.FromMinutes 2.)
-
-/// Starts a remote windows service. Waits up to two minutes for a response.
-let StartRemoteService host serviceName =
-    startRemoteService host serviceName
-    ensureRemoteServiceHasStarted host serviceName (TimeSpan.FromMinutes 2.)
-
 /// Adds quotes around the string
 /// [omit]
 let quote (str:string) = "\"" + str.Replace("\"","\\\"") + "\""
@@ -275,7 +299,7 @@ let quote (str:string) = "\"" + str.Replace("\"","\\\"") + "\""
 /// Adds quotes around the string if needed
 /// [omit]
 let quoteIfNeeded str = 
-    if isNullOrEmpty str then ""
+    if String.isNullOrEmpty str then ""
     elif str.Contains " " then quote str
     else str
 
@@ -289,7 +313,7 @@ let UseDefaults = id
 
 /// [omit]
 let stringParam (paramName, paramValue) = 
-    if isNullOrEmpty paramValue then None
+    if String.isNullOrEmpty paramValue then None
     else Some(paramName, quote paramValue)
 
 /// [omit]
@@ -311,9 +335,9 @@ let parametersToString flagPrefix delimiter parameters =
     parameters
     |> Seq.choose id
     |> Seq.map (fun (paramName, paramValue) -> 
-           flagPrefix + paramName + if isNullOrEmpty paramValue then ""
+           flagPrefix + paramName + if String.isNullOrEmpty paramValue then ""
                                     else delimiter + paramValue)
-    |> separated " "
+    |> String.separated " "
 
 /// Searches the given directories for all occurrences of the given file name
 /// [omit]
@@ -323,14 +347,14 @@ let tryFindFile dirs file =
         |> Seq.map (fun (path : string) -> 
                let dir = 
                    path
-                   |> replace "[ProgramFiles]" ProgramFiles
-                   |> replace "[ProgramFilesX86]" ProgramFilesX86
-                   |> replace "[SystemRoot]" SystemRoot
-                   |> directoryInfo
+                   |> String.replace "[ProgramFiles]" Environment.ProgramFiles
+                   |> String.replace "[ProgramFilesX86]" Environment.ProgramFilesX86
+                   |> String.replace "[SystemRoot]" Environment.SystemRoot
+                   |> DirectoryInfo.ofPath
                if not dir.Exists then ""
                else 
                    let fi = dir.FullName @@ file
-                            |> fileInfo
+                            |> FileInfo.ofPath
                    if fi.Exists then fi.FullName
                    else "")
         |> Seq.filter ((<>) "")
@@ -351,19 +375,25 @@ let findFile dirs file =
 /// ## Parameters
 ///  - `file` - The file to locate
 let tryFindFileOnPath (file : string) : string option =
-    pathDirectories
+    Environment.pathDirectories
+    |> Seq.filter Path.isValidPath
     |> Seq.append [ "." ]
     |> fun path -> tryFindFile path file
 
 /// Returns the AppSettings for the key - Splitted on ;
 /// [omit]
+[<Obsolete("This is no longer supported on dotnetcore.")>]
 let appSettings (key : string) (fallbackValue : string) = 
     let value = 
-        let setting = 
+        let setting =
+#if NETSTANDARD
+            null
+#else
             try 
                 System.Configuration.ConfigurationManager.AppSettings.[key]
             with exn -> ""
-        if not (isNullOrWhiteSpace setting) then setting
+#endif
+        if not (String.isNullOrWhiteSpace setting) then setting
         else fallbackValue
     value.Split([| ';' |], StringSplitOptions.RemoveEmptyEntries)
 
@@ -405,11 +435,11 @@ let defaultParams =
 
 let private formatArgs args = 
     let delimit (str : string) = 
-        if isLetterOrDigit (str.Chars(str.Length - 1)) then str + " "
+        if String.isLetterOrDigit (str.Chars(str.Length - 1)) then str + " "
         else str
     args
     |> Seq.map (fun (k, v) -> delimit k + quoteIfNeeded v)
-    |> separated " "
+    |> String.separated " "
 
 /// Execute an external program asynchronously and return the exit code,
 /// logging output and error messages to FAKE output. You can compose the result
@@ -417,35 +447,34 @@ let private formatArgs args =
 /// sure that none of them depend on the output of another.
 let asyncShellExec (args : ExecParams) = 
     async { 
-        if isNullOrEmpty args.Program then invalidArg "args" "You must specify a program to run!"
+        if String.isNullOrEmpty args.Program then invalidArg "args" "You must specify a program to run!"
         let commandLine = args.CommandLine + " " + formatArgs args.Args
         let info = 
             ProcessStartInfo
                 (args.Program, UseShellExecute = false, 
                  RedirectStandardError = true, RedirectStandardOutput = true, RedirectStandardInput = true,
-                 WindowStyle = ProcessWindowStyle.Hidden, WorkingDirectory = args.WorkingDirectory, 
+#if NETSTANDARD
+                 CreateNoWindow = true,
+#else
+                 WindowStyle = ProcessWindowStyle.Hidden,
+#endif 
+                 WorkingDirectory = args.WorkingDirectory, 
                  Arguments = commandLine)
         use proc = new Process(StartInfo = info)
         proc.ErrorDataReceived.Add(fun e -> 
-            if e.Data <> null then traceError e.Data)
+            if not (isNull e.Data) then Trace.traceError e.Data)
         proc.OutputDataReceived.Add(fun e -> 
-            if e.Data <> null then log e.Data)
+            if not (isNull e.Data) then Trace.log e.Data)
         start proc
         proc.BeginOutputReadLine()
         proc.BeginErrorReadLine()
-        proc.StandardInput.Close()
+        proc.StandardInput.Dispose()
         // attaches handler to Exited event, enables raising events, then awaits event
         // the event gets triggered even if process has already finished
         let! _ = Async.GuardedAwaitObservable proc.Exited (fun _ -> proc.EnableRaisingEvents <- true)
         return proc.ExitCode
     }
 
-/// Kills the given process
-let kill (proc : Process) = 
-    tracefn "Trying to kill process %s (Id = %d)" proc.ProcessName proc.Id
-    try 
-        proc.Kill()
-    with exn -> ()
 
 /// Kills all processes with the given id
 let killProcessById id = Process.GetProcessById id |> kill
@@ -464,7 +493,7 @@ let getProcessesByName (name : string) =
 
 /// Kills all processes with the given name
 let killProcess name = 
-    tracefn "Searching for process with name = %s" name
+    Trace.tracefn "Searching for process with name = %s" name
     getProcessesByName name |> Seq.iter kill
 
 /// Kills the F# Interactive (FSI) process.
@@ -473,32 +502,12 @@ let killFSI() = killProcess "fsi.exe"
 /// Kills the MSBuild process.
 let killMSBuild() = killProcess "msbuild"
 
-/// [omit]
-let mutable killCreatedProcesses = true
-
 /// Kills all processes that are created by the FAKE build script unless "donotkill" flag was set.
 let killAllCreatedProcesses() =
-    if not killCreatedProcesses then ()
-    else 
-        let traced = ref false
-            
-        for pid, startTime in startedProcesses do
-            try
-                let proc = Process.GetProcessById pid
-                
-                // process IDs may be reused by the operating system so we need
-                // to make sure the process is indeed the one we started
-                if proc.StartTime = startTime && not proc.HasExited then
-                    try 
-                        if not !traced then
-                          tracefn "Killing all processes that are created by FAKE and are still running."
-                          traced := true
-
-                        logfn "Trying to kill %s" proc.ProcessName
-                        kill proc
-                    with exn -> logfn "Killing %s failed with %s" proc.ProcessName exn.Message                              
-            with exn -> ()
-        startedProcesses.Clear()
+    match getStartedProcesses() with
+    | Some startedProcesses when shouldKillCreatedProcesses() ->
+        startedProcesses.KillAll()
+    | _ -> ()
 
 /// Waits until the processes with the given name have stopped or fails after given timeout.
 /// ## Parameters
@@ -507,7 +516,7 @@ let killAllCreatedProcesses() =
 let ensureProcessesHaveStopped name timeout =
     let endTime = DateTime.Now.Add timeout
     while DateTime.Now <= endTime && not (getProcessesByName name |> Seq.isEmpty) do
-        tracefn "Waiting for %s to stop (Timeout: %A)" name endTime
+        Trace.tracefn "Waiting for %s to stop (Timeout: %A)" name endTime
         Thread.Sleep 1000
     if not (getProcessesByName name |> Seq.isEmpty) then
         failwithf "The process %s has not stopped (check the logs for errors)" name

@@ -188,7 +188,7 @@ let main (args:string[]) =
   | :? ArguParseException as e ->
     printfn "%s" e.Message
     exitCode <- 1
-#if !NETSTANDARD1_5
+#if !NETSTANDARD1_6
   //if !TargetHelper.ExitCode.exitCode <> 0 then exit !TargetHelper.ExitCode.exitCode
   if Environment.ExitCode <> 0 then exitCode <- Environment.ExitCode
 #endif

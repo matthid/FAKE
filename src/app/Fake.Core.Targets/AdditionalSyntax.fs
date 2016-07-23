@@ -27,9 +27,7 @@ let Run targetName = run targetName
 let RunParameterTargetOrDefault parameterName defaultTarget = Environment.environVarOrDefault parameterName defaultTarget |> Run
 
 /// Runs the target given by the target parameter or the given default target
-let RunTargetOrDefault defaultTarget =
-    printfn "RunTargetOrDefault %s" defaultTarget
-    Environment.environVarOrDefault "target" defaultTarget |> Run
+let RunTargetOrDefault defaultTarget = Environment.environVarOrDefault "target" defaultTarget |> Run
 
 /// Runs the target given by the target parameter or lists the available targets
 let RunTargetOrListTargets() =

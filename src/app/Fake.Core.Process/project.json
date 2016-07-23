@@ -11,9 +11,8 @@
     "compile": {
       "includeFiles": [
         "AssemblyInfo.fs",
-        "Path.fs",
-        "FileSystem.fs",
-        "FileUtils.fs"
+        "GuardedAwaitObservable.fs",
+        "Process.fs"
       ]
     }
   },
@@ -24,12 +23,16 @@
     }
   },
   "dependencies": {
-    "Fake.Core.String": "1.0.0-alpha1"
+    "FSharp.Core": "4.0.1.7-alpha",
+    "Fake.Core.Environment": "1.0.0-alpha1",
+    "Fake.IO.FileSystem": "1.0.0-alpha1",
+    "Fake.Core.String": "1.0.0-alpha1",
+    "Fake.Core.Tracing": "1.0.0-alpha1",
+    "Fake.Core.Context": "1.0.0-alpha1"
   },
   "frameworks": {
     "net46": {
       "dependencies": {
-        "FSharp.Core": "4.0.0.1",
         "FSharp.Compiler.Service": "3.0.0"
       },
       "frameworkAssemblies": {
@@ -47,7 +50,7 @@
     "netstandard1.6": {
       "buildOptions": {
         "define": [
-          "NETSTANDARD1_5"
+          "NETSTANDARD"
         ]
       },
       "imports": [
@@ -55,8 +58,7 @@
         "dnxcore50"
       ],
       "dependencies": {
-        "System.Diagnostics.FileVersionInfo": "4.0.0",
-        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-160629",
+        "System.Diagnostics.Process": "4.1.0",
         "NETStandard.Library": "1.6.0"
       }
     }

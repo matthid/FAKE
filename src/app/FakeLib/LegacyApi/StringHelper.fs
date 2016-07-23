@@ -178,7 +178,6 @@ let liftString x =
     if isNullOrEmpty x then None
     else Some x
 
-#if !CORE_CLR
 /// Reads a file line by line
 let ReadFile(file : string) = 
     seq { 
@@ -355,5 +354,3 @@ let DecodeBase64Utf8String(text : string) =
     text
     |> Convert.FromBase64String
     |> Encoding.UTF8.GetString
-
-#endif
