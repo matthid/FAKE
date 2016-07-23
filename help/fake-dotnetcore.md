@@ -81,3 +81,9 @@ group Build
   Therefore this example is actually pretty bad because it just opened everything (for minimal diff to the "normal" build.fsx)
 
 TBD.
+
+
+## Downloads
+
+Currently Releases are on my branch: https://github.com/matthid/FAKE/releases/
+Alpha4 is the last known working version: https://github.com/matthid/FAKE/releases/tag/core-v1.0-alpha-04
