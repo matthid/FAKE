@@ -321,7 +321,7 @@ Target "CreateNuGet" (fun _ ->
         NuGet (setParams >> x64ify) "fake.nuspec"
 )
 
-#load "src/app/Fake.DotNet/Dotnet.fs"
+#load "src/app/Fake.Dotnet/Dotnet.fs"
 open Fake.Dotnet
 
 Target "InstallDotnetCore" (fun _ ->
