@@ -3,18 +3,18 @@
 // This probably needs to stay within Fake to bootstrap?
 // Currently last file in FakeLib, until all dependencies are available in dotnetcore.
 /// .NET Core + CLI tools helpers
-module Fake.DotnetCli
+module Fake.DotNet.Cli
 
-open Fake
+open Fake.Core
+open Fake.IO.FileSystem
+open Fake.IO.FileSystem.Operators
 open System
 open System.IO
 open System.Security.Cryptography
 open System.Text
-open System.Net
-open System.Web
 
 /// .NET Core SDK default install directory (set to default localappdata dotnet dir). Update this to redirect all tool commands to different location. 
-let mutable DefaultDotnetCliDir = environVar "LocalAppData" @@ "Microsoft" @@ "dotnet"
+let mutable DefaultDotnetCliDir = Environment.environVar "LocalAppData" @@ "Microsoft" @@ "dotnet"
 
 /// Get dotnet cli executable path
 /// ## Parameters
@@ -28,11 +28,17 @@ let private getDotnetCliInstallerUrl branch = sprintf "https://raw.githubusercon
 /// Download .NET Core SDK installer
 let private downloadDotnetInstaller branch fileName =  
     let url = getDotnetCliInstallerUrl branch
+#if USE_HTTPCLIENT
+    let h = new System.Net.Http.HttpClient();
+    use f = File.Open(fileName, FileMode.Create);
+    h.GetStreamAsync(url).Result.CopyTo(f);
+#else
     use w = new System.Net.WebClient()
     w.DownloadFile(url, fileName) // Http.RequestStream url
+#endif
     //use outFile = File.Open(fileName, FileMode.Create)
     //installScript.ResponseStream.CopyTo(outFile)
-    trace (sprintf "downloaded dotnet installer (%s) to %s" url fileName)
+    Trace.trace (sprintf "downloaded dotnet installer (%s) to %s" url fileName)
 
 /// [omit]
 let private md5 (data : byte array) : string =
@@ -161,7 +167,7 @@ let private buildDotnetCliInstallArgs (param: DotNetCliInstallOptions) =
             | Some ch -> ch
             | None -> 
                 let installerOptions = DotNetInstallerOptions.Default |> param.InstallerOptions
-                installerOptions.Branch |> replace "/" "-"
+                installerOptions.Branch |> String.replace "/" "-"
 
     let architectureParamValue = 
         match param.Architecture with
@@ -190,7 +196,7 @@ let DotnetCliInstall setParams =
 
     let args = sprintf "-ExecutionPolicy Bypass -NoProfile -NoLogo -NonInteractive -Command \"%s %s; if (-not $?) { exit -1 };\"" installScript (buildDotnetCliInstallArgs param)
     let exitCode = 
-        ExecProcess (fun info ->
+        Process.ExecProcess (fun info ->
             info.FileName <- "powershell"
             info.WorkingDirectory <- Path.GetTempPath()
             info.Arguments <- args
@@ -198,7 +204,7 @@ let DotnetCliInstall setParams =
 
     if exitCode <> 0 then
         // force download new installer script
-        traceError ".NET Core SDK install failed, trying to redownload installer..."
+        Trace.traceError ".NET Core SDK install failed, trying to redownload installer..."
         DotnetDownloadInstaller (param.InstallerOptions >> (fun o -> 
             { o with 
                 AlwaysDownload = true
@@ -218,7 +224,7 @@ type DotnetOptions =
 
     static member Default = {
         DotnetCliPath = dotnetCliPath DefaultDotnetCliDir
-        WorkingDirectory = currentDirectory
+        WorkingDirectory = Directory.GetCurrentDirectory()
         CustomParams = None
     }
 
@@ -234,11 +240,11 @@ let Dotnet (options: DotnetOptions) args =
     let timeout = TimeSpan.MaxValue
 
     let errorF msg =
-        traceError msg
+        Trace.traceError msg
         errors.Add msg 
 
     let messageF msg =
-        traceImportant msg
+        Trace.traceImportant msg
         messages.Add msg
 
     let cmdArgs = match options.CustomParams with
@@ -246,13 +252,13 @@ let Dotnet (options: DotnetOptions) args =
                     | None -> args
 
     let result = 
-        ExecProcessWithLambdas (fun info ->
+        Process.ExecProcessWithLambdas (fun info ->
             info.FileName <- options.DotnetCliPath
             info.WorkingDirectory <- options.WorkingDirectory
             info.Arguments <- cmdArgs
         ) timeout true errorF messageF
 
-    ProcessResult.New result messages errors
+    Process.ProcessResult.New result messages errors
 
 
 /// [omit]
@@ -327,12 +333,11 @@ let private buildRestoreArgs (param: DotnetRestoreOptions) =
 /// - 'setParams' - set restore command parameters
 /// - 'project' - project to restore packages
 let DotnetRestore setParams project =    
-    traceStartTask "Dotnet:restore" project
+    use t = Trace.traceTask "Dotnet:restore" project
     let param = DotnetRestoreOptions.Default |> setParams    
     let args = sprintf "restore %s %s" project (buildRestoreArgs param)
     let result = Dotnet param.Common args    
     if not result.OK then failwithf "dotnet restore failed with code %i" result.ExitCode
-    traceEndTask "Dotnet:restore" project
 
 /// build configuration
 type BuildConfiguration =
@@ -392,13 +397,11 @@ let private buildPackArgs (param: DotNetPackOptions) =
 /// - 'setParams' - set pack command parameters
 /// - 'project' - project to pack
 let DotnetPack setParams project =    
-    traceStartTask "Dotnet:pack" project
+    use t = Trace.traceTask "Dotnet:pack" project
     let param = DotNetPackOptions.Default |> setParams    
     let args = sprintf "pack %s %s" project (buildPackArgs param)
     let result = Dotnet param.Common args    
     if not result.OK then failwithf "dotnet pack failed with code %i" result.ExitCode
-    traceEndTask "Dotnet:pack" project
-
 
 /// dotnet publish command options
 type DotNetPublishOptions =
@@ -452,13 +455,11 @@ let private buildPublishArgs (param: DotNetPublishOptions) =
 /// - 'setParams' - set publish command parameters
 /// - 'project' - project to publish
 let DotnetPublish setParams project =    
-    traceStartTask "Dotnet:publish" project
+    use t = Trace.traceTask "Dotnet:publish" project
     let param = DotNetPublishOptions.Default |> setParams    
     let args = sprintf "publish %s %s" project (buildPublishArgs param)
     let result = Dotnet param.Common args    
     if not result.OK then failwithf "dotnet publish failed with code %i" result.ExitCode
-    traceEndTask "Dotnet:publish" project
-
 
 /// dotnet build command options
 type DotNetBuildOptions =
@@ -509,12 +510,11 @@ let private buildBuildArgs (param: DotNetBuildOptions) =
 /// - 'setParams' - set compile command parameters
 /// - 'project' - project to compile
 let DotnetCompile setParams project =    
-    traceStartTask "Dotnet:build" project
+    use t = Trace.traceTask "Dotnet:build" project
     let param = DotNetBuildOptions.Default |> setParams    
     let args = sprintf "build %s %s" project (buildBuildArgs param)
     let result = Dotnet param.Common args    
     if not result.OK then failwithf "dotnet build failed with code %i" result.ExitCode
-    traceEndTask "Dotnet:build" project
 
 /// get sdk version from global.json
 /// ## Parameters

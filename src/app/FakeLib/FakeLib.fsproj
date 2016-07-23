@@ -128,6 +128,9 @@
     <Compile Include="..\Fake.Tracing.NAntXml\NAntXmlTraceListener.fs">
       <Link>Fake.Tracing.NAntXml/NAntXmlTraceListener.fs</Link>
     </Compile>
+    <Compile Include="..\Fake.DotNet.Cli\Dotnet.fs">
+      <Link>Fake.DotNet.Cli/Dotnet.fs</Link>
+    </Compile>
     <Compile Include="LegacyApi\UserInputHelper.fs" />
     <Compile Include="LegacyApi\CSharpHelper.fs" />
     <Compile Include="LegacyApi\EnvironmentHelper.fs" />
@@ -269,9 +272,6 @@
     <Compile Include="LegacyApi\SonarQubeHelper.fs" />
     <Compile Include="LegacyApi\AzureKudu.fs" />
     <Compile Include="LegacyApi\DocFxHelper.fs" />
-    <Compile Include="..\Fake.Dotnet\Dotnet.fs">
-      <Link>Fake.Dotnet/Dotnet.fs</Link>
-    </Compile>
     <None Include="Targets.fsx" />
     <Compile Include="FixieHelper.fs" />
     <Compile Include="NuGet\NugetHelper.fs" />

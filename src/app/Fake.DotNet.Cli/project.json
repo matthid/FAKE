@@ -23,14 +23,15 @@
   },
   "dependencies": {
     "Fake.Core.Environment": "1.0.0-alpha1",
+    "Fake.Core.Tracing": "1.0.0-alpha1",
+    "Fake.Core.Process": "1.0.0-alpha1",
     "Fake.Core.String": "1.0.0-alpha1",
-    "Fake.Core.BuildServer": "1.0.0-alpha1"
+    "Fake.IO.FileSystem": "1.0.0-alpha1",
+    "FSharp.Core": "4.0.1.7-alpha"
   },
-  "disabled_frameworks": {
+  "frameworks": {
     "net46": {
       "dependencies": {
-        "FSharp.Core": "4.0.0.1",
-        "FSharp.Compiler.Service": "3.0.0"
       },
       "frameworkAssemblies": {
         "Microsoft.Build.Framework": "",
@@ -43,13 +44,12 @@
         "System.Xml.Linq": "",
         "System.Core": ""
       }
-    }
-  },
-  "frameworks": {
+    },
     "netstandard1.6": {
       "buildOptions": {
         "define": [
-          "NETSTANDARD1_5"
+          "NETSTANDARD",
+          "USE_HTTPCLIENT"
         ]
       },
       "imports": [
@@ -57,7 +57,7 @@
         "dnxcore50"
       ],
       "dependencies": {
-        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-160629",
+        "System.Net.Http": "4.1.0",
         "NETStandard.Library": "1.6.0"
       }
     }
