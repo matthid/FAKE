@@ -472,7 +472,6 @@ Target "InstallDotnetCore" (fun _ ->
 )
 
 Target "DotnetRestore" (fun _ ->
-
       // Copy nupkgs to nuget/dotnetcore
       !! "lib/nupgks/**/*.nupkg"
       |> Seq.iter (fun file ->
@@ -519,6 +518,28 @@ Target "DotnetBuild" (fun _ ->
       )
 )
 
+Target "DotnetCorePushNuGet" (fun _ ->
+    let nuget_exe = currentDirectory </> "packages" </> "build" </> "NuGet.CommandLine" </> "tools" </> "NuGet.exe"
+    let apikey = environVarOrDefault "nugetkey" ""
+    let nugetsource = environVarOrDefault "nugetsource" "https://www.nuget.org/api/v2/package"
+    let nugetPush nugetpackage =
+        if not <| System.String.IsNullOrEmpty apikey then
+            ExecProcess (fun info ->
+                info.FileName <- nuget_exe
+                info.Arguments <- sprintf "push '%s' '%s' -Source '%s'" nugetpackage apikey nugetsource) (System.TimeSpan.FromMinutes 5.)
+            |> (fun r -> if r <> 0 then failwithf "failed to push package %s" nugetpackage)
+
+    // dotnet pack
+    !! "src/app/*/project.json"
+    -- "src/app/Fake.netcore/project.json"
+    |> Seq.iter(fun proj ->
+        let projName = Path.GetFileName(Path.GetDirectoryName proj)
+        !! (sprintf "nuget/dotnetcore/%s.*.nupkg" projName)
+        -- (sprintf "nuget/dotnetcore/%s.*.symbols.nupkg" projName)
+        |> Seq.iter(fun nugetpackage ->
+          nugetPush nugetpackage)
+    )
+)
 Target "BootstrapAndBuildDnc" (fun _ ->
     let buildScript = __SOURCE_FILE__
     let target = "DotnetBuild"
@@ -612,6 +633,7 @@ Target "StartDnc" DoNothing
     =?> ("SourceLink", isLocalBuild && not isLinux)
     =?> ("CreateNuGet", not isLinux)
     =?> ("ReleaseDocs", isLocalBuild && not isLinux)
+    ==> "DotnetCorePushNuGet"
     ==> "PublishNuget"
     ==> "Release"
 
