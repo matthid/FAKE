@@ -211,6 +211,8 @@ let runUncached (context:FakeContext) : ResultCoreCacheInfo * Exception option =
         |> fun f -> 
             { f with
                 References = f.References @ co.CompileReferences }
+    if context.Config.PrintDetails then
+      Trace.tracefn "FSI Args: %A" (options.AsArgs |> Seq.toList)
 (*
     let cacheDir = context.ScriptFile.ScriptFakeDirectory
     if context.UseCache then

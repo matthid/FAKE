@@ -139,7 +139,6 @@ let paketCachingProvider printDetails cacheDir (paketDependencies:Paket.Dependen
           let newAdditionalArgs =
               { fsiOpts with
                   NoFramework = true
-                  Defines =  "DOTNETCORE" :: "FAKE" :: fsiOpts.Defines
                   Debug = Some Yaaf.FSharp.Scripting.DebugMode.Portable }
               |> (fun options -> options.AsArgs)
               |> Seq.toList

@@ -77,12 +77,6 @@ module internal Cache =
         { new ICachingProvider with
             member __.CleanCache context = cleanFiles context
             member __.TryLoadCache (context) =
-                let fsiOpts = context.Config.CompileOptions.AdditionalArguments |> FsiOptions.ofArgs
-                let newAdditionalArgs =
-                    { fsiOpts with
-                        Defines =  "FAKE" :: fsiOpts.Defines }
-                    |> (fun options -> options.AsArgs)
-                    |> Seq.toList
                 let xmlFile = xmlFileName context
                 match tryLoadDefault context with
                 | Some config when File.Exists xmlFile ->
@@ -92,7 +86,6 @@ module internal Cache =
                           { context.Config with
                               CompileOptions =
                                 { context.Config.CompileOptions with
-                                    AdditionalArguments = newAdditionalArgs
                                     RuntimeDependencies = context.Config.CompileOptions.RuntimeDependencies @ readXml
                                     CompileReferences = context.Config.CompileOptions.CompileReferences @ (readXml |> List.map (fun x -> x.Location))
                                 }
@@ -150,7 +143,6 @@ module internal Cache =
                     let newAdditionalArgs =
                         { fsiOpts with
                             NoFramework = true
-                            Defines =  "DOTNETCORE" :: "FAKE" :: fsiOpts.Defines
                             Debug = Some DebugMode.Portable }
                         |> (fun options -> options.AsArgs)
                         |> Seq.toList
@@ -173,7 +165,21 @@ module internal Cache =
 let fakeDirectoryName = ".fake"
 
 let prepareContext (config:FakeConfig) (cache:ICachingProvider) =
-    let allScriptContents = getAllScripts config.ScriptFilePath
+    let fsiOptions = FsiOptions.ofArgs (config.CompileOptions.AdditionalArguments)
+    let newFsiOptions =
+      { fsiOptions with
+#if !NETSTANDARD1_6
+          Defines = "FAKE" :: fsiOptions.Defines 
+#else
+          Defines = "DOTNETCORE" :: "FAKE" :: fsiOptions.Defines 
+#endif
+      }
+    let config = 
+      { config with 
+          FakeConfig.CompileOptions = 
+            { config.CompileOptions with
+                AdditionalArguments = newFsiOptions.AsArgs |> Array.toList } }
+    let allScriptContents = getAllScripts newFsiOptions.Defines config.ScriptFilePath
     let getOpts (c:ScriptCompileOptions) = c.AdditionalArguments @ c.CompileReferences
     let scriptHash = getScriptHash allScriptContents (getOpts config.CompileOptions)
     //TODO this is only calculating the hash for the input file, not anything #load-ed
