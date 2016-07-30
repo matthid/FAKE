@@ -402,6 +402,7 @@ install_fake_raw() {
     say_verbose "Downloaded file exists and readable? $(if [ -r $zip_path ]; then echo "yes"; else echo "no"; fi)"
     
     say "Extracting zip"
+    mkdir -p "$install_root/$specific_version"
     extract_fake_package $zip_path "$install_root/$specific_version/$osname-$architecture"
     
     return 0

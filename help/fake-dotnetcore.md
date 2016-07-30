@@ -1,5 +1,79 @@
 # Fake dotnetcore
 
+## Getting Started
+
+Getting started with the Fake dotnetcore version is easy.
+Just execute a single line of bash (supports git bash on windows):
+
+```bash
+p=".fake";f="$p/fake_obtain.sh";if [ ! -f "$f" ]; then mkdir $p; curl --fail -L -s -o $f https://raw.githubusercontent.com/matthid/FAKE/coreclr/script/obtain_fake.sh; fi; . $f
+```
+
+now you can use 
+
+```bash
+exec_fake run --help
+```
+
+to simplify calling fake you can create two helper scripts in your repository:
+
+`fake.sh`
+```bash
+#!/usr/bin/env bash
+
+p=".fake";f="$p/fake_obtain.sh";if [ ! -f "$f" ]; then mkdir $p; curl --fail -L -s -o $f https://raw.githubusercontent.com/matthid/FAKE/coreclr/script/obtain_fake.sh; fi; . $f
+
+exec_fake $*
+```
+
+`fake.cmd`
+```
+@echo off
+
+"C:\Program Files\Git\bin\bash" -c "./fake.sh %*"
+```
+
+This is basically it. You can now execute fake commands.
+
+## CLI
+
+```
+$ ./Fake.netcore.exe --help
+USAGE: fake [--help] [--version] [--verbose] [<subcommand> [<options>]]
+
+SUBCOMMANDS:
+
+    run <options>         Runs a build script.
+
+    Use 'fake <subcommand> --help' for additional information.
+
+OPTIONS:
+
+    --version             Prints the version.
+    --verbose, -v         More verbose output.
+    --help                display this list of options.
+```
+
+```
+$ ./Fake.netcore.exe run --help
+USAGE: fake run [--help] [--script <string>] [--target <string>] [--environmentvariable <string> <string>]
+                [--debug] [--singletarget] [--nocache] [--fsiargs <string>]
+
+OPTIONS:
+
+    --script <string>     Specify the script to run. (--script is optional)
+    --target, -t <string> The target to run.
+    --environmentvariable, -e <string> <string>
+                          Set an environment variable.
+    --debug, -d           Debug the script (set a breakpoint at the start).
+    --singletarget, -s    Run only the specified target.
+    --nocache, -n         Disable caching of the compiled script.
+    --fsiargs <string>    Arguments passed to the f# interactive.
+    --help                display this list of options.
+```
+
+Note that `./Fake.netcore.exe run build.fsx` is valid (as `--script` is optional.)
+
 ## Why?
 
 The goals are:
@@ -81,45 +155,6 @@ group Build
   Therefore this example is actually pretty bad because it just opened everything (for minimal diff to the "normal" build.fsx)
 
 TBD.
-
-## CLI
-
-```
-$ ./Fake.netcore.exe --help
-USAGE: fake [--help] [--version] [--verbose] [<subcommand> [<options>]]
-
-SUBCOMMANDS:
-
-    run <options>         Runs a build script.
-
-    Use 'fake <subcommand> --help' for additional information.
-
-OPTIONS:
-
-    --version             Prints the version.
-    --verbose, -v         More verbose output.
-    --help                display this list of options.
-```
-
-```
-$ ./Fake.netcore.exe run --help
-USAGE: fake run [--help] [--script <string>] [--target <string>] [--environmentvariable <string> <string>]
-                [--debug] [--singletarget] [--nocache] [--fsiargs <string>]
-
-OPTIONS:
-
-    --script <string>     Specify the script to run. (--script is optional)
-    --target, -t <string> The target to run.
-    --environmentvariable, -e <string> <string>
-                          Set an environment variable.
-    --debug, -d           Debug the script (set a breakpoint at the start).
-    --singletarget, -s    Run only the specified target.
-    --nocache, -n         Disable caching of the compiled script.
-    --fsiargs <string>    Arguments passed to the f# interactive.
-    --help                display this list of options.
-```
-
-Note that `./Fake.netcore.exe run build.fsx` is valid (as `--script` is optional.)
 
 ## Downloads
 

@@ -40,23 +40,10 @@
     "FSharp.Core": "__FSHARP_CORE_VERSION__",
     "Argu": "__ARGU_VERSION__",
     "Fake.Runtime": "__FAKE_RUNTIME_VERSION__",
-    "Mono.Cecil": "__MONO_CECIL_VERSION__",
-    "__FSHARP_COMPILER_SERVICE_PACKAGE__": "__FSHARP_COMPILER_SERVICE_VERSION__"
+    "__FSHARP_COMPILER_SERVICE_PACKAGE__": "__FSHARP_COMPILER_SERVICE_VERSION__",
+    "Mono.Cecil": "__MONO_CECIL_VERSION__"
   },
   "frameworks": {
-    "net46": {
-      "frameworkAssemblies": {
-        "Microsoft.Build.Framework": "",
-        "mscorlib": "",
-        "System": "",
-        "System.Configuration": "",
-        "System.Runtime.Caching": "",
-        "System.ServiceProcess": "",
-        "System.Xml": "",
-        "System.Xml.Linq": "",
-        "System.Core": ""
-      }
-    },
     "netcoreapp1.0": {
       "buildOptions": {
         "define": [
