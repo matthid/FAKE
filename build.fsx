@@ -470,6 +470,24 @@ Target "DotnetBuild" (fun _ ->
       )
 )
 
+
+Target "BootstrapAndBuildDnc" (fun _ ->
+    let buildScript = __SOURCE_FILE__
+    let target = "DotnetBuild"
+
+    if isLinux then
+        ExecProcess (fun info ->
+            info.FileName <- "fake.cmd"
+            info.WorkingDirectory <- "."
+            info.Arguments <- sprintf "--verbose run %s -t %s" buildScript target) (System.TimeSpan.FromMinutes 3.0)
+    else
+        ExecProcess (fun info ->
+            info.FileName <- "fake.sh"
+            info.WorkingDirectory <- "."
+            info.Arguments <- sprintf "--verbose run %s -t %s" buildScript target) (System.TimeSpan.FromMinutes 3.0)
+    |> fun r -> if r <> 0 then failwith "dnc build failed!"
+)
+
 Target "PublishNuget" (fun _ ->
 #if !DOTNETCORE
     Paket.Push(fun p -> 
@@ -522,15 +540,19 @@ Target "PrintColors" (fun s ->
 )
 Target "FailFast" (fun _ -> failwith "fail fast")
 Target "Default" DoNothing
+Target "StartDnc" DoNothing
+
+"StartDnc"
+    =?> ("InstallDotnetCore", not isLinux)
+    =?> ("DotnetRestore", not isLinux)
+    =?> ("DotnetBuild", not isLinux)
 
 // Dependencies
 "Clean"
     ==> "RenameFSharpCompilerService"
     ==> "SetAssemblyInfo"
     ==> "BuildSolution"
-    =?> ("InstallDotnetCore", not isLinux)
-    =?> ("DotnetRestore", not isLinux)
-    =?> ("DotnetBuild", not isLinux)
+    ==> "BootstrapAndBuildDnc"
     =?> ("TestDotnetCore", not isLinux)
     //==> "ILRepack"
     ==> "Test"
