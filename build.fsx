@@ -519,7 +519,6 @@ Target "DotnetBuild" (fun _ ->
       )
 )
 
-
 Target "BootstrapAndBuildDnc" (fun _ ->
     let buildScript = __SOURCE_FILE__
     let target = "DotnetBuild"

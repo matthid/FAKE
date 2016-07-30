@@ -5,14 +5,6 @@
 
 # Note: This script should be compatible with the dash shell used in Ubuntu. So avoid bashisms! See https://wiki.ubuntu.com/DashAsBinSh for more info
 
-# Stop script on NZEC
-set -e
-# Stop script if unbound variable found (use ${var:-} if intentional)
-set -u
-# By default cmd1 | cmd2 returns exit code of cmd2 regardless of cmd1 success
-# This is causing it to fail
-set -o pipefail
-
 # Use in the the functions: eval $invocation
 invocation='say_verbose "Calling: ${yellow:-}${FUNCNAME[0]} ${green:-}$*${normal:-}"'
 
@@ -42,13 +34,13 @@ if [ -t 1 ]; then
 fi
 
 say_err() {
-    printf "%b\n" "${red:-}fake_install: Error: $1${normal:-}" >&2
+    printf "%b\n" "${red:-}fake-boot: Error: $1${normal:-}" >&2
 }
 
 say() {
     # using stream 3 (defined in the beginning) to not interfere with stdout of functions
     # which may be used as return value
-    printf "%b\n" "${cyan:-}fake-install:${normal:-} $1" >&3
+    printf "%b\n" "${cyan:-}fake-boot:${normal:-} $1" >&3
 }
 
 say_verbose() {
@@ -426,7 +418,15 @@ install_fake() {
 }
 
 exec_fake () {
+
     install_fake
     local fake_package_path="$install_root/$specific_version/$osname-$architecture"
-    "$fake_package_path/Fake.netcore.exe" $*
+    local failed=false
+    "$fake_package_path/Fake.netcore.exe" $* || failed=true
+
+    if [ "$failed" = true ]; then
+        say_err "Fake returned nonzero exit code"
+        return 1
+    fi
+    return 0
 }
