@@ -5,7 +5,7 @@ open System.Reflection
 [<assembly: AssemblyVersionAttribute("1.0.0")>]
 [<assembly: AssemblyInformationalVersionAttribute("1.0.0-alpha1")>]
 [<assembly: AssemblyFileVersionAttribute("1.0.0")>]
-[<assembly: AssemblyTitleAttribute("FAKE - F# Fake.Core.Environment")>]
+[<assembly: AssemblyTitleAttribute("FAKE - F# Fake.netcore")>]
 do ()
 
 module internal AssemblyVersionInformation =

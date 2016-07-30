@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha1",
+  "version": "__FAKE_CORE_CONTEXT_VERSION__",
   "buildOptions": {
     "debugType": "portable",
     "compilerName": "fsc",
@@ -11,7 +11,7 @@
     "compile": {
       "includeFiles": [
         "AssemblyInfo.fs",
-        "String.fs"
+        "Context.fs"
       ]
     }
   },
@@ -21,11 +21,13 @@
       "imports": "dnxcore50"
     }
   },
-  "dependencies":{
-    "FSharp.Core": "4.0.1.7-alpha"
+  "dependencies": {
+    "FSharp.Core": "__FSHARP_CORE_VERSION__"
   },
   "frameworks": {
     "net46": {
+      "dependencies": {
+      },
       "frameworkAssemblies": {
         "Microsoft.Build.Framework": "",
         "mscorlib": "",
@@ -41,7 +43,8 @@
     "netstandard1.6": {
       "buildOptions": {
         "define": [
-          "NETSTANDARD1_5"
+          "FX_NO_REMOTING",
+          "USE_ASYNC_LOCAL"
         ]
       },
       "imports": [
@@ -49,7 +52,8 @@
         "dnxcore50"
       ],
       "dependencies": {
-        "NETStandard.Library": "1.6.0"
+        "NETStandard.Library": "1.6.0",
+        "System.Collections.Concurrent": "4.0.12"
       }
     }
   }

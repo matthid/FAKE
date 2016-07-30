@@ -29,8 +29,6 @@
   },
   "frameworks": {
     "net46": {
-      "dependencies": {
-      },
       "frameworkAssemblies": {
         "mscorlib": "",
         "System": "",

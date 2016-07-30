@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha1",
+  "version": "__FAKE_CORE_GLOBBING_VERSION__",
   "buildOptions": {
     "debugType": "portable",
     "compilerName": "fsc",
@@ -11,7 +11,8 @@
     "compile": {
       "includeFiles": [
         "AssemblyInfo.fs",
-        "String.fs"
+        "Globbing.fs",
+        "GlobbingFileSystem.fs"
       ]
     }
   },
@@ -21,11 +22,13 @@
       "imports": "dnxcore50"
     }
   },
-  "dependencies":{
-    "FSharp.Core": "4.0.1.7-alpha"
+  "dependencies": {
+    "FSharp.Core": "__FSHARP_CORE_VERSION__"
   },
   "frameworks": {
     "net46": {
+      "dependencies": {
+      },
       "frameworkAssemblies": {
         "Microsoft.Build.Framework": "",
         "mscorlib": "",

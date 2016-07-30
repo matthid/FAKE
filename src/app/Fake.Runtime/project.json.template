@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha1",
+  "version": "__FAKE_RUNTIME_VERSION__",
   "buildOptions": {
     "debugType": "portable",
     "compilerName": "fsc",
@@ -40,11 +40,11 @@
     }
   },
   "dependencies": {
-    "Fake.Core.Context": "1.0.0-alpha1",
-    "Paket.Core.netcore": "3.10.0-alpha001",
-    "FSharp.Core": "4.0.1.7-alpha",
-    "Mono.Cecil": "0.9.6.0",
-    "FSharp.Compiler.Service.netcore": "1.0.0-alpha-00002"
+    "Fake.Core.Context": "__FAKE_CORE_CONTEXT_VERSION__",
+    "__PAKET_CORE_PACKAGE__": "__PAKET_CORE_VERSION__",
+    "FSharp.Core": "__FSHARP_CORE_VERSION__",
+    "Mono.Cecil": "__MONO_CECIL_VERSION__",
+    "__FSHARP_COMPILER_SERVICE_PACKAGE__": "__FSHARP_COMPILER_SERVICE_VERSION__"
   },
   "frameworks": {
     "net46": {

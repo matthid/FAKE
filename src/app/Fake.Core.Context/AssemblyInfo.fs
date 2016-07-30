@@ -1,15 +1,13 @@
 ﻿namespace System
 open System.Reflection
-open System.Runtime.CompilerServices
-open System.Runtime.InteropServices
 
-[<assembly: AssemblyTitleAttribute("FAKE - F# Fake.Core.Tracing")>]
 [<assembly: AssemblyProductAttribute("FAKE - F# Make")>]
-[<assembly: AssemblyVersionAttribute("4.31.1")>]
-[<assembly: AssemblyInformationalVersionAttribute("4.31.1")>]
-[<assembly: AssemblyFileVersionAttribute("4.31.1")>]
+[<assembly: AssemblyVersionAttribute("1.0.0")>]
+[<assembly: AssemblyInformationalVersionAttribute("1.0.0-alpha1")>]
+[<assembly: AssemblyFileVersionAttribute("1.0.0")>]
+[<assembly: AssemblyTitleAttribute("FAKE - F# Fake.Core.Context")>]
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] Version = "4.31.1"
-    let [<Literal>] InformationalVersion = "4.31.1"
+    let [<Literal>] Version = "1.0.0"
+    let [<Literal>] InformationalVersion = "1.0.0-alpha1"

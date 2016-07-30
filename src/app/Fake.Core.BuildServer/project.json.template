@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha1",
+  "version": "__FAKE_CORE_BUILDSERVER_VERSION__",
   "buildOptions": {
     "debugType": "portable",
     "compilerName": "fsc",
@@ -11,7 +11,7 @@
     "compile": {
       "includeFiles": [
         "AssemblyInfo.fs",
-        "String.fs"
+        "BuildServer.fs"
       ]
     }
   },
@@ -21,11 +21,15 @@
       "imports": "dnxcore50"
     }
   },
-  "dependencies":{
-    "FSharp.Core": "4.0.1.7-alpha"
+  "dependencies": {
+    "Fake.Core.Environment": "__FAKE_CORE_ENVIRONMENT_VERSION__",
+    "Fake.Core.String": "__FAKE_CORE_STRING_VERSION__",
+    "FSharp.Core": "__FSHARP_CORE_VERSION__"
   },
   "frameworks": {
     "net46": {
+      "dependencies": {
+      },
       "frameworkAssemblies": {
         "Microsoft.Build.Framework": "",
         "mscorlib": "",

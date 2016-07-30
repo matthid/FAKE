@@ -174,6 +174,55 @@ Target "SetAssemblyInfo" (fun _ ->
     [Attribute.Title "FAKE - F# Make FluentMigrator Lib"
      Attribute.Guid "E18BDD6F-1AF8-42BB-AEB6-31CD1AC7E56D"] @ common
     |> CreateFSharpAssemblyInfo "./src/app/Fake.FluentMigrator/AssemblyInfo.fs"
+
+)
+
+
+Target "ConvertProjectJsonTemplates" (fun _ ->
+    let commonDotNetCoreVersion = "1.0.0-alpha1"
+    // Set project.json.template -> project.json
+    let mappings = [
+      "__FSHARP_CORE_VERSION__", "4.0.1.7-alpha"
+      "__ARGU_VERSION__", "3.0.0-beta02"
+      "__ARGU_VERSION__", "3.0.0-beta02"
+      "__FSHARP_COMPILER_SERVICE_PACKAGE__", "FSharp.Compiler.Service.netcore"
+      "__FSHARP_COMPILER_SERVICE_VERSION__", "1.0.0-alpha-00002"
+      "__MONO_CECIL_VERSION__", "0.9.6.0"
+      "__PAKET_CORE_VERSION__", "3.10.0-alpha001"
+      "__PAKET_CORE_PACKAGE__", "Paket.Core.netcore"
+      "__FAKE_CORE_TRACING_VERSION__", commonDotNetCoreVersion
+      "__FAKE_CORE_CONTEXT_VERSION__", commonDotNetCoreVersion
+      "__FAKE_CORE_GLOBBING_VERSION__", commonDotNetCoreVersion
+      "__FAKE_CORE_TARGETS_VERSION__", commonDotNetCoreVersion
+      "__FAKE_IO_FILESYSTEM_VERSION__", commonDotNetCoreVersion
+      "__FAKE_CORE_PROCESS_VERSION__", commonDotNetCoreVersion
+      "__FAKE_CORE_ENVIRONMENT_VERSION__", commonDotNetCoreVersion
+      "__FAKE_CORE_STRING_VERSION__", commonDotNetCoreVersion
+      "__FAKE_CORE_BUILDSERVER_VERSION__", commonDotNetCoreVersion
+      "__FAKE_DOTNET_ASSEMBLYINFOFILE_VERSION__", commonDotNetCoreVersion
+      "__FAKE_DOTNET_CLI_VERSION__", commonDotNetCoreVersion
+      "__FAKE_DOTNET_MSBUILD_VERSION__", commonDotNetCoreVersion
+      "__FAKE_TRACING_NANTXML_VERSION__", commonDotNetCoreVersion
+      "__FAKE_NETCORE_EXE_VERSION__", commonDotNetCoreVersion
+      "__FAKE_RUNTIME_VERSION__", commonDotNetCoreVersion
+      ]
+      
+    !! "src/app/*/project.json.template"
+    |> Seq.iter(fun template ->
+        let original = template.Replace("project.json.template", "project.json")
+        let templateContent = File.ReadAllText template
+        mappings
+        |> Seq.fold (fun (s:string) (fromMapping, toMapping) -> s.Replace(fromMapping, toMapping)) templateContent
+        |> fun c -> File.WriteAllText (original, c)
+        let dir = Path.GetDirectoryName template
+        let dirName = Path.GetFileName dir
+        [Attribute.Product "FAKE - F# Make"
+         Attribute.Version commonDotNetCoreVersion
+         Attribute.InformationalVersion commonDotNetCoreVersion
+         Attribute.FileVersion commonDotNetCoreVersion
+         Attribute.Title (sprintf "FAKE - F# %s" dirName)]
+        |> CreateFSharpAssemblyInfo (sprintf "%s/AssemblyInfo.fs" dir)
+    )
 )
 
 Target "BuildSolution" (fun _ ->
@@ -477,12 +526,12 @@ Target "BootstrapAndBuildDnc" (fun _ ->
 
     if isLinux then
         ExecProcess (fun info ->
-            info.FileName <- "fake.cmd"
+            info.FileName <- "fake.sh"
             info.WorkingDirectory <- "."
             info.Arguments <- sprintf "--verbose run %s -t %s" buildScript target) (System.TimeSpan.FromMinutes 3.0)
     else
         ExecProcess (fun info ->
-            info.FileName <- "fake.sh"
+            info.FileName <- "fake.cmd"
             info.WorkingDirectory <- "."
             info.Arguments <- sprintf "--verbose run %s -t %s" buildScript target) (System.TimeSpan.FromMinutes 3.0)
     |> fun r -> if r <> 0 then failwith "dnc build failed!"
@@ -543,6 +592,7 @@ Target "Default" DoNothing
 Target "StartDnc" DoNothing
 
 "StartDnc"
+    ==> "ConvertProjectJsonTemplates"
     =?> ("InstallDotnetCore", not isLinux)
     =?> ("DotnetRestore", not isLinux)
     =?> ("DotnetBuild", not isLinux)

@@ -1,14 +1,14 @@
 {
-  "version": "1.0.0-alpha1",
+  "version": "__FAKE_NETCORE_EXE_VERSION__",
+  "copyright": "Appparently dotnet cli needs this.",
   "buildOptions": {
     "debugType": "portable",
     "compilerName": "fsc",
     "define": [
       "CORE_CLR",
-      "DOTNETCORE",
-      "EXPLICIT_DEPENDENCIES"
+      "DOTNETCORE"
     ],
-    "emitEntryPoint": false,
+    "emitEntryPoint": true,
     "xmlDoc": true,
     "delaySign": true,
     "additionalArguments": [
@@ -19,17 +19,8 @@
     ],
     "compile": {
       "includeFiles": [
-        "../../../paket-files/matthid/Yaaf.FSharp.Scripting/src/source/Yaaf.FSharp.Scripting/YaafFSharpScripting.fs",
-        "AssemblyInfo.fs",
-        "LegacyApiHelper.fs",
-        "Environment.fs",
-        "Path.fs",
-        "String.fs",
-        "Trace.fs",
-        "ScriptRunner.fs",
-        "HashGeneration.fs",
-        "CoreCache.fs",
-        "FakeRuntime.fs"
+        "Cli.fs",
+        "Program.fs"
       ]
     }
   },
@@ -39,12 +30,18 @@
       "imports": "dnxcore50"
     }
   },
+   "runtimes": {
+     "win7-x86": { },
+     "win7-x64": { },
+     "osx.10.11-x64": { },
+     "ubuntu.14.04-x64": { }
+  },
   "dependencies": {
-    "Fake.Core.Context": "1.0.0-alpha1",
-    "Paket.Core.netcore": "3.10.0-alpha001",
-    "FSharp.Core": "4.0.1.7-alpha",
-    "Mono.Cecil": "0.9.6.0",
-    "FSharp.Compiler.Service.netcore": "1.0.0-alpha-00002"
+    "FSharp.Core": "__FSHARP_CORE_VERSION__",
+    "Argu": "__ARGU_VERSION__",
+    "Fake.Runtime": "__FAKE_RUNTIME_VERSION__",
+    "Mono.Cecil": "__MONO_CECIL_VERSION__",
+    "__FSHARP_COMPILER_SERVICE_PACKAGE__": "__FSHARP_COMPILER_SERVICE_VERSION__"
   },
   "frameworks": {
     "net46": {
@@ -60,10 +57,11 @@
         "System.Core": ""
       }
     },
-    "netstandard1.6": {
+    "netcoreapp1.0": {
       "buildOptions": {
         "define": [
-          "NETSTANDARD1_5"
+          "NETSTANDARD1_5",
+          "NETSTANDARD1_6"
         ]
       },
       "imports": [
@@ -71,16 +69,24 @@
         "dnxcore50"
       ],
       "dependencies": {
+        "System.Console": "4.0.0",
+        "System.IO.FileSystem": "4.0.1",
+        "System.Diagnostics.Tracing": "4.1.0",
+        "System.Net.NameResolution": "4.0.0",
+        "System.Net.Primitives": "4.0.11",
+        "System.Threading.ThreadPool": "4.0.10",
         "System.Diagnostics.TraceSource": "4.0.0",
         "System.Reflection": "4.1.0",
+        "System.Reflection.Metadata": "1.4.1-beta-24227-04",
         "System.Reflection.TypeExtensions": "4.1.0",
         "System.Reflection.Primitives": "4.0.1",
         "System.Runtime": "4.1.0",
         "System.Runtime.Loader": "4.0.0",
         "System.Runtime.Extensions": "4.1.0",
-        "System.Security.Cryptography.Primitives": "4.0.0",
         "System.Security.Cryptography.Algorithms": "4.2.0",
-        "NETStandard.Library": "1.6.0"
+        "Microsoft.NETCore.App": {
+            "version": "1.0.0"
+        }
       }
     }
   }
