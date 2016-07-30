@@ -345,6 +345,7 @@ extract_fake_package() {
     
     local zip_path=$1
     local out_path=$2
+    local optionalPackPath=${3:-}
     
     local temp_out_path=$(mktemp -d $temporary_file_template)
     
@@ -352,7 +353,14 @@ extract_fake_package() {
     #tar -xzf "$zip_path" -C "$temp_out_path" > /dev/null || failed=true
     unzip "$zip_path" -d "$temp_out_path" > /dev/null || failed=true
     
-    cp -R "$temp_out_path/$osname-$architecture" "$out_path.temp/" || failed=true
+    local sourceDir="$temp_out_path"
+    if [ ! -z "$optionalPackPath" ]; then
+        if [ -d "$temp_out_path/$optionalPackPath" ]; then
+            sourceDir="$temp_out_path/$optionalPackPath"
+        fi
+    fi
+    
+    cp -R "$sourceDir" "$out_path.temp" || failed=true
     mv "$out_path.temp" "$out_path"
     
     rm -rf $temp_out_path
@@ -422,7 +430,8 @@ install_fake_raw() {
     
     say "Extracting zip"
     mkdir -p "$install_root/$specific_version"
-    extract_fake_package $zip_path "$install_root/$specific_version/$osname-$architecture"
+    rm -rf "$install_root/$specific_version/$osname-$architecture"
+    extract_fake_package $zip_path "$install_root/$specific_version/$osname-$architecture" "$osname-$architecture"
     
     return 0
 }

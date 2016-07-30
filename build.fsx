@@ -179,7 +179,7 @@ Target "SetAssemblyInfo" (fun _ ->
 
 
 Target "ConvertProjectJsonTemplates" (fun _ ->
-    let commonDotNetCoreVersion = "1.0.0-alpha1"
+    let commonDotNetCoreVersion = "1.0.0-alpha5"
     // Set project.json.template -> project.json
     let mappings = [
       "__FSHARP_CORE_VERSION__", "4.0.1.7-alpha"
@@ -485,37 +485,58 @@ Target "DotnetRestore" (fun _ ->
           DotnetRestore id proj
       )
 )
-Target "DotnetBuild" (fun _ ->
-      // dotnet pack
-      !! "src/app/*/project.json"
-      -- "src/app/Fake.netcore/project.json"
-      |> Seq.iter(fun proj ->
-          DotnetPack (fun c ->
-              { c with
-                  Configuration = Debug;
-                  OutputPath = Some (nugetDir @@ "dotnetcore")
-              }) proj
-      )
-      // dotnet publish
-      [ "win7-x86"; "win7-x64"; "osx.10.11-x64"; "ubuntu.14.04-x64" ]
-      |> List.map Some
-      |> (fun rs -> None :: rs)
-      |> Seq.iter (fun runtime ->
-            !! "src/app/Fake.netcore/project.json"
-            |> Seq.iter(fun proj ->
-                let projName = Path.GetFileName(Path.GetDirectoryName proj)
-                let runtimeName =
-                    match runtime with
-                    | Some r -> r
-                    | None -> "current"
-                DotnetPublish (fun c ->
-                    { c with
-                        Runtime = runtime
-                        Framework = Some "netcoreapp1.0"
-                        OutputPath = Some (nugetDir @@ "dotnetcore" @@ projName @@ runtimeName) 
-                    }) proj
-            )
-      )
+
+let runtimes = 
+  [ "win7-x86"; "win7-x64"; "osx.10.11-x64"; "ubuntu.14.04-x64" ]
+Target "DotnetPackage" (fun _ ->
+    // dotnet pack
+    !! "src/app/*/project.json"
+    -- "src/app/Fake.netcore/project.json"
+    |> Seq.iter(fun proj ->
+        DotnetPack (fun c ->
+            { c with
+                Configuration = Debug;
+                OutputPath = Some (nugetDir @@ "dotnetcore")
+            }) proj
+    )
+    // dotnet publish
+    runtimes
+    |> List.map Some
+    |> (fun rs -> None :: rs)
+    |> Seq.iter (fun runtime ->
+        !! "src/app/Fake.netcore/project.json"
+        |> Seq.iter(fun proj ->
+            let projName = Path.GetFileName(Path.GetDirectoryName proj)
+            let runtimeName =
+                match runtime with
+                | Some r -> r
+                | None -> "current"
+            DotnetPublish (fun c ->
+                { c with
+                    Runtime = runtime
+                    Framework = Some "netcoreapp1.0"
+                    OutputPath = Some (nugetDir @@ "dotnetcore" @@ projName @@ runtimeName) 
+                }) proj
+        )
+    )
+)
+
+Target "DotnetCoreCreateZipPackages" (fun _ ->
+#if !DOTNETCORE
+    // build zip packages
+    !! "nuget/dotnetcore/*.nupkg"
+    -- "nuget/dotnetcore/*.symbols.nupkg"
+    |> Zip "nuget/dotnetcore" "nuget/dotnetcore/Fake.netcore/fake-dotnetcore-packages.zip"
+
+    runtimes
+    |> Seq.iter (fun runtime ->
+      let runtimeDir = sprintf "nuget/dotnetcore/Fake.netcore/%s" runtime
+      !! (sprintf "%s/**" runtimeDir)
+      |> Zip runtimeDir (sprintf "nuget/dotnetcore/Fake.netcore/fake-dotnetcore-%s.zip" runtime)
+    )
+#else
+    printfn "We don't currently have Zip helper on dotnetcore."
+#endif
 )
 
 Target "DotnetCorePushNuGet" (fun _ ->
@@ -615,7 +636,7 @@ Target "StartDnc" DoNothing
     ==> "ConvertProjectJsonTemplates"
     =?> ("InstallDotnetCore", not isLinux)
     =?> ("DotnetRestore", not isLinux)
-    =?> ("DotnetBuild", not isLinux)
+    =?> ("DotnetPackage", not isLinux)
 
 // Dependencies
 "Clean"
@@ -623,6 +644,7 @@ Target "StartDnc" DoNothing
     ==> "SetAssemblyInfo"
     ==> "BuildSolution"
     ==> "BootstrapAndBuildDnc"
+    ==> "DotnetCoreCreateZipPackages"
     =?> ("TestDotnetCore", not isLinux)
     //==> "ILRepack"
     ==> "Test"

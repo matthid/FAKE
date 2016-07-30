@@ -40,22 +40,22 @@ let parseHeader scriptCacheDir (f : RawFakeSection) =
   | "paket-inline" ->
     let dependenciesFile = Path.Combine(scriptCacheDir, dependenciesFileName)
     let fixedSection =
-      f.Section
+      f.Section.Split([| "\r\n"; "\r"; "\n" |], System.StringSplitOptions.None)
       |> Seq.map (fun line ->
-        let replacePaketCommand command line =
+        let replacePaketCommand (command:string) (line:string) =
           let trimmed = line.Trim()
           if trimmed.StartsWith command then
             let restString = trimmed.Substring(command.Length).Trim()
             let isValidPath = try Path.GetFullPath restString |> ignore; true with _ -> false
             if not isValidPath || Path.IsPathRooted restString then line
-            else line.Replace(restString, Path.Combine("../..", restString))
+            else line.Replace(restString, Path.Combine("..", "..", restString))
           else line
         line
         |> replacePaketCommand "source"
         |> replacePaketCommand "cache"
       )
-    File.WriteAllText(dependenciesFile, fixedSection)
-    PaketDependencies Paket.Dependencies(dependenciesFile) None)
+    File.WriteAllLines(dependenciesFile, fixedSection)
+    PaketDependencies (Paket.Dependencies(dependenciesFile), None)
   | "paket.dependencies" ->
     let groupStart = "group "
     let fileStart = "file "

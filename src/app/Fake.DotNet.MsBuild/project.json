@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha1",
+  "version": "1.0.0-alpha5",
   "buildOptions": {
     "debugType": "portable",
     "compilerName": "fsc",
@@ -23,12 +23,12 @@
     }
   },
   "dependencies": {
-    "Fake.Core.Environment": "1.0.0-alpha1",
-    "Fake.Core.Globbing": "1.0.0-alpha1",
-    "Fake.Core.String": "1.0.0-alpha1",
-    "Fake.Core.Tracing": "1.0.0-alpha1",
-    "Fake.IO.FileSystem": "1.0.0-alpha1",
-    "Fake.Core.Process": "1.0.0-alpha1",
+    "Fake.Core.Environment": "1.0.0-alpha5",
+    "Fake.Core.Globbing": "1.0.0-alpha5",
+    "Fake.Core.String": "1.0.0-alpha5",
+    "Fake.Core.Tracing": "1.0.0-alpha5",
+    "Fake.IO.FileSystem": "1.0.0-alpha5",
+    "Fake.Core.Process": "1.0.0-alpha5",
     "FSharp.Core": "4.0.1.7-alpha"
   },
   "frameworks": {
