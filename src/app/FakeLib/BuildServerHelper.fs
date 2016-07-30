@@ -1,6 +1,5 @@
-﻿/// Contains functions which allow build scripts to interact with a build server.
-[<System.Obsolete("use Fake.Core.BuildServer module instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
-[<AutoOpen>]
+﻿[<AutoOpen>]
+/// Contains functions which allow build scripts to interact with a build server.
 module Fake.BuildServerHelper
 
 /// The server type option.
@@ -46,7 +45,7 @@ let isBambooBuild =
 /// [omit]
 let isTFBuild =
     let tfbuild = environVar "TF_BUILD"
-    not (isNull tfbuild) && tfbuild.ToLowerInvariant() = "true"
+    tfbuild <> null && tfbuild.ToLowerInvariant() = "true"
 
 /// Build number retrieved from Team Foundation
 /// [omit]

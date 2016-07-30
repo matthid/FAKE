@@ -1,6 +1,5 @@
-/// This module contains functions which allow to read and write environment variables and build parameters
-[<System.Obsolete("use Fake.Core.Environment instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 [<AutoOpen>]
+/// This module contains functions which allow to read and write environment variables and build parameters
 module Fake.EnvironmentHelper
 
 open System
@@ -19,29 +18,22 @@ type EnvironTarget = EnvironmentVariableTarget
 let environVar name = Environment.GetEnvironmentVariable name
 
 /// Combines two path strings using Path.Combine
-[<System.Obsolete("use the new function in Fake.FileSystem.Path instead. Do not use `open Fake` anymore!")>]
 let inline combinePaths path1 (path2 : string) = Path.Combine(path1, path2.TrimStart [| '\\'; '/' |])
 /// Combines two path strings using Path.Combine
-[<System.Obsolete("use the new function in Fake.FileSystem.Path instead. Do not use `open Fake` anymore!")>]
 let inline combinePathsNoTrim path1 path2 = Path.Combine(path1, path2)
 
 /// Combines two path strings using Path.Combine
-[<System.Obsolete("open Fake.FileSystem.Operators instead. Do not use `open Fake` anymore!")>]
 let inline (@@) path1 path2 = combinePaths path1 path2
 /// Combines two path strings using Path.Combine
-[<System.Obsolete("open Fake.FileSystem.Operators instead. Do not use `open Fake` anymore!")>]
 let inline (</>) path1 path2 = combinePathsNoTrim path1 path2
 
 // Normalizes path for different OS
 let inline normalizePath (path : string) = 
     path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar)
 
-let getCurrentDirectory () = Environment.CurrentDirectory
-
 /// Retrieves all environment variables from the given target
 let environVars target = 
-    let vars = Environment.GetEnvironmentVariables target
-    [ for e in vars -> 
+    [ for e in Environment.GetEnvironmentVariables target -> 
           let e1 = e :?> Collections.DictionaryEntry
           e1.Key, e1.Value ]
 
@@ -156,19 +148,16 @@ let monoPath =
         "/Library/Frameworks/Mono.framework/Commands/mono"
     else
         "mono"
-        
-[<Obsolete("Will no longer be available in dotnetcore, it will probably be moved to Fake.Core.Process")>]
+
 /// Arguments on the Mono executable
 let mutable monoArguments = ""
 
-[<Obsolete("Will no longer be available in dotnetcore, it will probably be moved to Fake.Core.Process")>]
 /// Modifies the ProcessStartInfo according to the platform semantics
 let platformInfoAction (psi : ProcessStartInfo) = 
     if isMono && psi.FileName.EndsWith ".exe" then 
         psi.Arguments <- monoArguments + " \"" + psi.FileName + "\" " + psi.Arguments
         psi.FileName <- monoPath
 
-[<Obsolete("Will no longer be available in dotnetcore.")>]
 /// The path of the current target platform
 let mutable TargetPlatformPrefix = 
     let (<|>) a b = 
@@ -181,7 +170,6 @@ let mutable TargetPlatformPrefix =
         else Some @"C:\Windows\Microsoft.NET\Framework"
     |> Option.get
 
-[<Obsolete("Will no longer be available in dotnetcore.")>]
 /// Base path for getting tools from windows SDKs
 let sdkBasePath = ProgramFilesX86 @@ "Microsoft SDKs\Windows"
 
@@ -194,21 +182,18 @@ let getNewestTool possibleToolPaths =
        |> Array.rev 
        |> Seq.ofArray 
        |> Seq.head
-       
-[<Obsolete("Will no longer be available in dotnetcore.")>]
+
 /// Gets the local directory for the given target platform
 let getTargetPlatformDir platformVersion = 
     if Directory.Exists(TargetPlatformPrefix + "64") then (TargetPlatformPrefix + "64") @@ platformVersion
     else TargetPlatformPrefix @@ platformVersion
-    
-[<Obsolete("Will no longer be available in dotnetcore.")>]
+
 /// The path to the personal documents
 let documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
 
 /// The directory separator string. On most systems / or \
 let directorySeparator = Path.DirectorySeparatorChar.ToString()
 
-[<Obsolete("Will no longer be available in dotnetcore. Will move to Fake.IO.FileSystem")>]
 /// Convert the given windows path to a path in the current system
 let convertWindowsToCurrentPath (windowsPath : string) = 
     if (windowsPath.Length > 2 && windowsPath.[1] = ':' && windowsPath.[2] = '\\') then windowsPath
@@ -219,8 +204,7 @@ let encoding =
     match getBuildParamOrDefault "encoding" "default" with
     | "default" -> Text.Encoding.Default
     | enc -> Text.Encoding.GetEncoding(enc)
-    
-[<Obsolete("Will no longer be available in dotnetcore.")>]
+
 /// Returns a sequence with all installed .NET framework versions
 let getInstalledDotNetFrameworks() = 
     let frameworks = new ResizeArray<_>()
@@ -244,8 +228,7 @@ let getInstalledDotNetFrameworks() =
                 frameworks.Add(Registry.LocalMachine.OpenSubKey(key).GetValue("Version").ToString())
         frameworks :> seq<_>
     with e -> frameworks :> seq<_> //Probably a new unrecognisable version
-    
-[<Obsolete("Will no longer be available in dotnetcore.")>]
+
 /// A record which allows to display lots of machine specific information like machine name, processor count etc.
 type MachineDetails = 
     { ProcessorCount : int
@@ -256,8 +239,7 @@ type MachineDetails =
       UserDomainName : string
       AgentVersion : string
       DriveInfo : seq<string> }
-      
-[<Obsolete("Will no longer be available in dotnetcore.")>]
+
 /// Retrieves information about the hard drives
 let getDrivesInfo() = 
     Environment.GetLogicalDrives()
@@ -269,7 +251,6 @@ let getDrivesInfo() =
                (Convert.ToDouble(d.TotalFreeSpace) / (1024. * 1024. * 1024.)) 
                (Convert.ToDouble(d.TotalSize) / (1024. * 1024. * 1024.)))
 
-[<Obsolete("Will no longer be available in dotnetcore.")>]
 /// Retrieves lots of machine specific information like machine name, processor count etc.
 let getMachineEnvironment() = 
     { ProcessorCount = Environment.ProcessorCount

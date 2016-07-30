@@ -1,5 +1,4 @@
 /// This module contains a file pattern globbing implementation.
-[<System.Obsolete("Use Fake.Core.Globbing.Glob instead")>]
 module Fake.Globbing
 
 open System

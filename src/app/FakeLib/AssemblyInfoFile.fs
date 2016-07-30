@@ -1,6 +1,5 @@
 ﻿/// Contains tasks to generate AssemblyInfo files for C# and F#.
 /// There is also a tutorial about the [AssemblyInfo tasks](../assemblyinfo.html) available.
-[<System.Obsolete("Please use Fake.DotNet.AssemblyInfoFile instead.")>]
 module Fake.AssemblyInfoFile
 
 open System

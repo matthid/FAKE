@@ -1,5 +1,4 @@
 ﻿[<AutoOpen>]
-[<System.Obsolete("use Fake.Core.Process instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
 /// Contains functions which can be used to start other tools.
 module Fake.ProcessHelper
 
@@ -11,7 +10,6 @@ open System.Threading
 open System.Text
 open System.Collections.Generic
 open System.ServiceProcess
-open Fake.Core.GuardedAwaitObservable
 
 /// [omit]
 let startedProcesses = HashSet()

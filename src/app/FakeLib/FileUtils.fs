@@ -1,5 +1,4 @@
 ﻿/// Shell-like functions. Similar to [Ruby's FileUtils](http://www.ruby-doc.org/stdlib-2.0.0/libdoc/rake/rdoc/FileUtils.html).
-[<System.Obsolete("Use Fake.IO.FileSystem instead.")>]
 module Fake.FileUtils
 
 open System.IO

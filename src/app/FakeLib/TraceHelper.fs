@@ -1,6 +1,5 @@
-﻿/// This module contains function which allow to trace build output
-[<AutoOpen>]
-[<System.Obsolete("use Fake.Core.Trace module instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
+﻿[<AutoOpen>]
+/// This module contains function which allow to trace build output
 module Fake.TraceHelper
 
 open System
@@ -134,7 +133,7 @@ let closeTag tag =
 let closeAllOpenTags() = Seq.iter closeTag openTags.Value
 
 /// Traces the begin of a target
-let traceStartTarget name description dependencyString =
+let traceStartTarget name description dependencyString = 
     sendOpenBlock name
     ReportProgressStart <| sprintf "Target: %s" name
     openTag "target"

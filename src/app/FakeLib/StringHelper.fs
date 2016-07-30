@@ -1,8 +1,7 @@
-﻿/// Contains basic functions for string manipulation.
-[<AutoOpen>]
-[<System.Obsolete("use Fake.Core.String module instead. Do not use `open Fake` anymore, use Fake.Core instead!")>]
+﻿[<AutoOpen>]
 /// Contains basic functions for string manipulation.
 module Fake.StringHelper
+
 open System
 open System.IO
 open System.Text
