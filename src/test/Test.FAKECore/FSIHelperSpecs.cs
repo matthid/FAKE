@@ -535,13 +535,13 @@ trace ""TEST_FAKE_OUTPUT""");
                     var res = RunExplicit(scriptFilePath, EmptyArgs, EmptyArgs, true);
                     var cache = FSIHelper.Cache.read(cacheXmlFilePath);
                     var loaded = System.AppDomain.CurrentDomain.GetAssemblies().ToLookup(a => a.FullName);
-                    foreach (var ass in cache)
+                    foreach (var ass in cache.Assemblies)
                     {
                         loaded.Contains(ass.FullName).ShouldBeTrue();
                     }
 
                     // FakeLib, TestAssembly, FSharp.Core, FSharp.Compiler.Service, mscorlib, Cecil,...
-                    cache.Count().ShouldBeGreaterThan(5);
+                    cache.Assemblies.Count().ShouldBeGreaterThan(5);
                 }
                 finally
                 {
