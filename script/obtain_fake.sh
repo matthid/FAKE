@@ -284,6 +284,30 @@ construct_download_link() {
     return 0
 }
 
+# args:
+# specific_version - $1
+construct_packages_download_link() {
+    eval $invocation
+    
+    local expectedFile="fake-dotnetcore-packages.zip"
+    
+    local specific_version=${1:-}
+    
+    if [ ! -z "$specific_version" ]; then
+        echo "https://github.com/$github_repo/releases/download/$specific_version/$expectedFile"
+        return 0
+    fi
+    
+    local version_file_url=$(curl -s "https://api.github.com/repos/$github_repo/releases" \
+        | grep browser_download_url \
+        | cut -d '"' -f 4 \
+        | grep "$expectedFile" \
+        | head -n 1)
+    
+    echo "$version_file_url"
+    return 0
+}
+
 
 # args:
 # install_root - $1
@@ -373,6 +397,9 @@ calculate_vars() {
     download_link=$(construct_download_link $specific_version)
     say_verbose "download_link=$download_link"
     
+    packages_download_link=$(construct_packages_download_link  $specific_version)
+    say_verbose "packages_download_link=$packages_download_link"
+    
     install_root=".fake/bin"
     say_verbose "install_root=$install_root"
 }
@@ -396,6 +423,35 @@ install_fake_raw() {
     say "Extracting zip"
     mkdir -p "$install_root/$specific_version"
     extract_fake_package $zip_path "$install_root/$specific_version/$osname-$architecture"
+    
+    return 0
+}
+
+install_fake_packages() {
+    eval $invocation
+    
+    check_min_reqs
+    calculate_vars
+    
+    check_pre_reqs
+    
+    packagesPath="$install_root/$specific_version/packages"
+    if [ -d "$packagesPath" ]; then
+        say "FAKE packages for version $specific_version already installed."
+        return 0
+    fi
+    
+    mkdir -p "$install_root/$specific_version"
+    zip_path=$(mktemp $temporary_file_template)
+    say_verbose "Zip path: $zip_path"
+    
+    say "Downloading $packages_download_link"
+    download "$packages_download_link" $zip_path
+    say_verbose "Downloaded file exists and readable? $(if [ -r $zip_path ]; then echo "yes"; else echo "no"; fi)"
+    
+    say "Extracting zip"
+    mkdir -p "$install_root/$specific_version"
+    extract_fake_package $zip_path "$install_root/$specific_version/packages"
     
     return 0
 }

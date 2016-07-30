@@ -6,7 +6,7 @@ Getting started with the Fake dotnetcore version is easy.
 Just execute a single line of bash (supports git bash on windows):
 
 ```bash
-p=".fake";f="$p/obtain_fake.sh";if [ ! -f "$f" ]; then mkdir $p; curl --fail -L -s -o $f https://raw.githubusercontent.com/matthid/FAKE/coreclr/script/obtain_fake.sh; fi; . $f
+p=".fake";f="$p/obtain_fake.sh";if [ ! -f "$f" ]; then mkdir -p $p; curl --fail -L -s -o $f https://raw.githubusercontent.com/matthid/FAKE/coreclr/script/obtain_fake.sh; fi; . $f
 ```
 
 now you can use 
@@ -21,7 +21,7 @@ to simplify calling fake you can create two helper scripts in your repository:
 ```bash
 #!/usr/bin/env bash
 
-p=".fake";f="$p/obtain_fake.sh";if [ ! -f "$f" ]; then mkdir $p; curl --fail -L -s -o $f https://raw.githubusercontent.com/matthid/FAKE/coreclr/script/obtain_fake.sh; fi; . $f
+p=".fake";f="$p/obtain_fake.sh";if [ ! -f "$f" ]; then mkdir -p $p; curl --fail -L -s -o $f https://raw.githubusercontent.com/matthid/FAKE/coreclr/script/obtain_fake.sh; fi; . $f
 
 exec_fake $*
 ```
