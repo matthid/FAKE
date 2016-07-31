@@ -57,17 +57,18 @@ get_current_os_name() {
         echo "win7"
         return 0
     elif [ "$uname" = "Darwin" ]; then
-        echo "osx"
+        echo "osx.10.11"
         return 0
     else
         # Detect Distro
         if [ "$(cat /etc/*-release | grep -cim1 ubuntu)" -eq 1 ]; then
-            if [ "$(cat /etc/*-release | grep -cim1 16.04)" -eq 1 ]; then
-                echo "ubuntu.16.04"
-                return 0
-            fi
-
-            echo "ubuntu"
+            
+            #if [ "$(cat /etc/*-release | grep -cim1 16.04)" -eq 1 ]; then
+            #    echo "ubuntu.16.04"
+            #    return 0
+            #fi
+            echo "ubuntu.14.04"
+            #echo "ubuntu"
             return 0
         elif [ "$(cat /etc/*-release | grep -cim1 centos)" -eq 1 ]; then
             echo "centos"
