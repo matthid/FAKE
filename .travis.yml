@@ -4,6 +4,8 @@ dist: trusty # Ubuntu 14.04
 
 env:
  - HOME=/home/travis
+ - APPDATA=/home/travis
+ - LocalAppData=/home/travis
 
 addons:
   apt:
