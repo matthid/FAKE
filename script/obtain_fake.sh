@@ -415,6 +415,14 @@ calculate_vars() {
     
     install_root=".fake/bin"
     say_verbose "install_root=$install_root"
+    
+    local postfix=""
+    if beginswith win "$osname"; then
+        postfix=".exe"
+    fi
+    local fake_package_path="$install_root/$specific_version/$osname-$architecture"
+    fake_executable="$fake_package_path/Fake.netcore$postfix"
+    
 }
 
 install_fake_raw() {
@@ -437,6 +445,8 @@ install_fake_raw() {
     mkdir -p "$install_root/$specific_version"
     rm -rf "$install_root/$specific_version/$osname-$architecture"
     extract_fake_package $zip_path "$install_root/$specific_version/$osname-$architecture" "$osname-$architecture"
+    
+    chmod +x "$fake_executable"
     
     return 0
 }
@@ -492,13 +502,12 @@ beginswith() { case $2 in "$1"*) true;; *) false;; esac; }
 exec_fake () {
 
     install_fake
-    local fake_package_path="$install_root/$specific_version/$osname-$architecture"
     local failed=false
     local postfix=""
     if beginswith win "$osname"; then
         postfix=".exe"
     fi
-    "$fake_package_path/Fake.netcore$postfix" $* || failed=true
+    "$fake_executable" $* || failed=true
 
     if [ "$failed" = true ]; then
         say_err "Fake returned nonzero exit code"
