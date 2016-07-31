@@ -63,10 +63,10 @@ get_current_os_name() {
         # Detect Distro
         if [ "$(cat /etc/*-release | grep -cim1 ubuntu)" -eq 1 ]; then
             
-            #if [ "$(cat /etc/*-release | grep -cim1 16.04)" -eq 1 ]; then
-            #    echo "ubuntu.16.04"
-            #    return 0
-            #fi
+            if [ "$(cat /etc/*-release | grep -cim1 16.04)" -eq 1 ]; then
+                echo "ubuntu.16.04"
+                return 0
+            fi
             echo "ubuntu.14.04"
             #echo "ubuntu"
             return 0
@@ -483,12 +483,18 @@ install_fake() {
     install_fake_raw
 }
 
+beginswith() { case $2 in "$1"*) true;; *) false;; esac; }
+
 exec_fake () {
 
     install_fake
     local fake_package_path="$install_root/$specific_version/$osname-$architecture"
     local failed=false
-    "$fake_package_path/Fake.netcore.exe" $* || failed=true
+    local postfix=""
+    if beginswith win "$osname"; then
+        postfix=".exe"
+    fi
+    "$fake_package_path/Fake.netcore$postfix" $* || failed=true
 
     if [ "$failed" = true ]; then
         say_err "Fake returned nonzero exit code"
