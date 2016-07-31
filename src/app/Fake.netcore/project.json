@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha5",
+  "version": "1.0.0-alpha6",
   "copyright": "Appparently dotnet cli needs this.",
   "buildOptions": {
     "debugType": "portable",
@@ -39,7 +39,7 @@
   "dependencies": {
     "FSharp.Core": "4.0.1.7-alpha",
     "Argu": "3.0.0-beta02",
-    "Fake.Runtime": "1.0.0-alpha5",
+    "Fake.Runtime": "1.0.0-alpha6",
     "FSharp.Compiler.Service.netcore": "1.0.0-alpha-00002",
     "Mono.Cecil": "0.9.6.0"
   },

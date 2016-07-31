@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha5",
+  "version": "1.0.0-alpha6",
   "buildOptions": {
     "debugType": "portable",
     "compilerName": "fsc",
@@ -24,9 +24,9 @@
   },
   "dependencies": {
     "FSharp.Core": "4.0.1.7-alpha",
-    "Fake.Core.Environment": "1.0.0-alpha5",
-    "Fake.Core.String": "1.0.0-alpha5",
-    "Fake.Core.BuildServer": "1.0.0-alpha5"
+    "Fake.Core.Environment": "1.0.0-alpha6",
+    "Fake.Core.String": "1.0.0-alpha6",
+    "Fake.Core.BuildServer": "1.0.0-alpha6"
   },
   "frameworks": {
     "net46": {

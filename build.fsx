@@ -1,6 +1,6 @@
 (* -- Fake Dependencies paket-inline
 source https://nuget.org/api/v2
-source .fake/bin/core-v1.0-alpha-04/packages
+source .fake/bin/core-v1.0-alpha-06/packages
 
 nuget System.AppContext prerelease
 nuget Fake.Core.Targets prerelease
@@ -186,7 +186,7 @@ Target "SetAssemblyInfo" (fun _ ->
 
 
 Target "ConvertProjectJsonTemplates" (fun _ ->
-    let commonDotNetCoreVersion = "1.0.0-alpha5"
+    let commonDotNetCoreVersion = "1.0.0-alpha6"
     // Set project.json.template -> project.json
     let mappings = [
       "__FSHARP_CORE_VERSION__", "4.0.1.7-alpha"

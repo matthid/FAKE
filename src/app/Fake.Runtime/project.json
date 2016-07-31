@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-alpha5",
+  "version": "1.0.0-alpha6",
   "buildOptions": {
     "debugType": "portable",
     "compilerName": "fsc",
@@ -40,7 +40,7 @@
     }
   },
   "dependencies": {
-    "Fake.Core.Context": "1.0.0-alpha5",
+    "Fake.Core.Context": "1.0.0-alpha6",
     "Paket.Core.netcore": "3.10.0-alpha001",
     "FSharp.Core": "4.0.1.7-alpha",
     "FSharp.Compiler.Service.netcore": "1.0.0-alpha-00002",
