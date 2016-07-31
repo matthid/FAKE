@@ -24,12 +24,6 @@ type FakeExecutionContext =
 type RuntimeContext =
   | Fake of FakeExecutionContext
   | Unknown
-  interface System.IDisposable with
-    member x.Dispose() =
-      match x with
-      | Fake e -> (e:>System.IDisposable).Dispose()
-      | _ -> ()
-  
 
 [<RequireQualifiedAccess>]
 type internal RuntimeContextWrapper(t: RuntimeContext) =
@@ -37,10 +31,6 @@ type internal RuntimeContextWrapper(t: RuntimeContext) =
     inherit System.MarshalByRefObject()
 #endif
     member x.Type = t
-    
-    interface System.IDisposable with
-      member x.Dispose() = (t :> System.IDisposable).Dispose()
-
 
 #if USE_ASYNC_LOCAL
 open System.Threading
@@ -54,16 +44,8 @@ let private getDataDict() = fake_data.Value
 let private setContext (name:string) (o : obj) : unit =
 #if USE_ASYNC_LOCAL
   let d = getDataDict()
-  d.AddOrUpdate(name, o, fun _ old -> 
-    match old with
-    | :? System.IDisposable as d -> d.Dispose()
-    | _ -> ()
-    o) |> ignore
+  d.AddOrUpdate(name, o, fun _ old -> o) |> ignore
 #else
-  match System.Runtime.Remoting.Messaging.CallContext.LogicalGetData(name) with
-  | null -> ()
-  | :? System.IDisposable as d -> d.Dispose()
-  | _ -> ()
   System.Runtime.Remoting.Messaging.CallContext.LogicalSetData(name, o)
 #endif
 
@@ -111,7 +93,7 @@ let isFakeContext () =
 let forceFakeContext () =
   match getExecutionContext()
         |> getFakeExecutionContext with
-  | None -> failwith "no Fake Execution context was found. You can initialize one via Fake.Core.Context.setExecutionContext"
+  | None -> invalidOp "no Fake Execution context was found. You can initialize one via Fake.Core.Context.setExecutionContext"
   | Some e -> e
 
 let getFakeVar name =

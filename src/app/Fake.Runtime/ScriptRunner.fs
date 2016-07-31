@@ -265,7 +265,10 @@ let runUncached (context:FakeContext) : ResultCoreCacheInfo * Exception option =
           traceError e.Result.Error.Merged
           reraise ()
 
-    session.EvalInteraction """ """
+    //session.EvalInteraction "let mutable __hook = ref Unchecked.defaultof<Fake.Core.Context.FakeExecutionContext>"
+    //let __hook = session.EvalExpression<Fake.Core.Context.FakeExecutionContext ref> "__hook"
+    //__hook := execContext
+    //session.EvalInteraction "Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake !__hook)"
 
     let result =
         try

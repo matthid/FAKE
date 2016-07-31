@@ -223,7 +223,22 @@ let loadAssembly (loadContext:AssemblyLoadContext) printDetails (assemInfo:Assem
 let findAndLoadInRuntimeDeps (loadContext:AssemblyLoadContext) (name:AssemblyName) printDetails (runtimeDependencies:AssemblyInfo list) =
     let strName = name.FullName
     if printDetails then tracefn "Trying to resolve: %s" strName
+    let getAssemblyFromType (t:System.Type) =
+#if NETSTANDARD1_6
+      t.GetTypeInfo().Assembly
+#else
+      t.Assembly
+#endif
+    
+    // These guys need to be handled carefully, they must only exist a single time in memory
+    let wellKnownAssemblies = 
+      [ getAssemblyFromType typeof<Fake.Core.Context.FakeExecutionContext> ]
+
     let isPerfectMatch, result =
+      match wellKnownAssemblies |> List.tryFind (fun a -> a.GetName().Name = name.Name) with
+      | Some a ->
+        a.FullName = strName, (Some (None, a))
+      | None ->
         match runtimeDependencies |> List.tryFind (fun r -> r.FullName = strName) with
         | Some a ->
             true, loadAssembly loadContext printDetails a
