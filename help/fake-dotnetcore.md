@@ -35,12 +35,12 @@ exec_fake $*
 "C:\Program Files\Git\bin\bash" -c "./fake.sh %*"
 ```
 
-This is basically it. You can now execute fake commands.
+This is basically it. You can now execute fake commands. In the future fake will probably provide a command to generate/update the scripts for you.
 
 ## CLI
 
 ```
-$ ./Fake.netcore.exe --help
+$ ./fake.sh --help
 USAGE: fake [--help] [--version] [--verbose] [<subcommand> [<options>]]
 
 SUBCOMMANDS:
@@ -57,7 +57,7 @@ OPTIONS:
 ```
 
 ```
-$ ./Fake.netcore.exe run --help
+$ ./fake.sh run --help
 USAGE: fake run [--help] [--script <string>] [--target <string>] [--environmentvariable <string> <string>]
                 [--debug] [--singletarget] [--nocache] [--fsiargs <string>]
 
@@ -74,7 +74,12 @@ OPTIONS:
     --help                display this list of options.
 ```
 
-Note that `./Fake.netcore.exe run build.fsx` is valid (as `--script` is optional.)
+Note that `./fake.sh run build.fsx` is valid (as `--script` is optional.)
+
+## Buildserver support
+
+AppVeyor: https://github.com/matthid/FAKE/blob/coreclr/appveyor.yml
+Travis: https://github.com/matthid/FAKE/blob/coreclr/.travis.yml
 
 ## Why?
 
