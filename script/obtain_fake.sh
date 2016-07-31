@@ -71,13 +71,13 @@ get_current_os_name() {
             #echo "ubuntu"
             return 0
         elif [ "$(cat /etc/*-release | grep -cim1 centos)" -eq 1 ]; then
-            echo "centos"
+            echo "centos.7"
             return 0
         elif [ "$(cat /etc/*-release | grep -cim1 rhel)" -eq 1 ]; then
-            echo "rhel"
+            echo "rhel.7.0"
             return 0
         elif [ "$(cat /etc/*-release | grep -cim1 debian)" -eq 1 ]; then
-            echo "debian"
+            echo "debian.8"
             return 0
         elif [ "$(cat /etc/*-release | grep -cim1 fedora)" -eq 1 ]; then
             if [ "$(cat /etc/*-release | grep -cim1 23)" -eq 1 ]; then
@@ -257,6 +257,10 @@ get_latest_version() {
         | grep "$expectedFile" \
         | head -n 1 \
         | cut -d '/' -f 8)
+    if [ -z "$my_specific_version" ]; then
+        say_err "Could not find a version for $expectedFile, please open an issue on https://github.com/fsharp/FAKE/ so that we can add support for it!"
+        return 1
+    fi
     echo "$my_specific_version"
     return 0
 }
