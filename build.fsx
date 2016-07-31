@@ -581,7 +581,7 @@ Target "BootstrapAndBuildDnc" (fun _ ->
         ExecProcess (fun info ->
             info.FileName <- "fake.sh"
             info.WorkingDirectory <- "."
-            info.Arguments <- sprintf "run %s -t %s" buildScript target) (System.TimeSpan.FromMinutes 45.0)
+            info.Arguments <- sprintf "--verbose run %s -t %s" buildScript target) (System.TimeSpan.FromMinutes 45.0)
     else
         ExecProcess (fun info ->
             info.FileName <- "fake.cmd"
