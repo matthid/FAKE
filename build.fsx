@@ -499,6 +499,7 @@ Target "DotnetRestore" (fun _ ->
 
 let runtimes = 
   [ "win7-x86"; "win7-x64"; "osx.10.11-x64"; "ubuntu.14.04-x64" ]
+
 Target "DotnetPackage" (fun _ ->
     // dotnet pack
     !! "src/app/*/project.json"
