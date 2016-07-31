@@ -47,7 +47,8 @@ let parseHeader scriptCacheDir (f : RawFakeSection) =
           if trimmed.StartsWith command then
             let restString = trimmed.Substring(command.Length).Trim()
             let isValidPath = try Path.GetFullPath restString |> ignore; true with _ -> false
-            if not isValidPath || Path.IsPathRooted restString then line
+            let isAbsoluteUrl = match Uri.TryCreate(restString, UriKind.Absolute) with | true, _ -> true | _ -> false
+            if isAbsoluteUrl || not isValidPath || Path.IsPathRooted restString then line
             else line.Replace(restString, Path.Combine("..", "..", restString))
           else line
         line
